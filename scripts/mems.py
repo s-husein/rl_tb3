@@ -2,15 +2,13 @@ import numpy as np
 import torch
 
 class Rollout:
-    def __init__(self, batch_size = 128):
+    def __init__(self):
         self.data_keys = ['states', 'actions', 'next_states', 'rewards', 'dones']
         self.reset()
-        self.batch_size = batch_size
         self.size = 0
 
     def sample(self):
-        indices = np.random.choice(range(self.size), self.batch_size, replace=False)
-        # start_point = np.arange(0, self.size, self.batch_size)
+        indices = np.random.choice(range(self.size), self.size, replace=False)
         return indices
         
     def reset(self):
