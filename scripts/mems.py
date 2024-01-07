@@ -8,7 +8,8 @@ class Rollout:
         self.size = 0
 
     def sample(self):
-        indices = np.random.choice(range(self.size), self.size, replace=False)
+        indices = np.arange(self.size)
+        # indices = np.random.choice(range(self.size), self.size, replace=False)
         return indices
         
     def reset(self):

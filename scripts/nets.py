@@ -31,5 +31,10 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
     return nn.Sequential(*layers)
 
 
+env = gym.make('CartPole-v1')
+
+print(make_dnn(env, net_type='actor'))
+
+
 
 

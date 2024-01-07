@@ -1,4 +1,4 @@
-from paths import CHECKPOINTFOLDER, MODELFOLDER, PLOTFOLDER, STATUSFILE
+from paths import CHECKPOINTFOLDER, STATUSFILE
 import torch
 
 class Utils:
@@ -39,7 +39,12 @@ class Utils:
             file.writelines(lines[:epoch+1])
             file.close()
         else:
+            file = open(self.plot_file, 'w')
+            file.close()
             self.write_file(self.plot_file, 'Rewards\n')
+
+    def write_plot_data(self, rewards):
+        self.write_file(self.plot_file, f'{rewards}\n')
 
     def save_checkpoint(self, epoch, checkpath):
         file = open(STATUSFILE, 'w')
