@@ -40,12 +40,12 @@ class Utils:
             file = open(self.plot_file, 'w')
             file.writelines(lines[:epoch+1])
             file.close()
-            return epoch
         else:
             file = open(self.plot_file, 'w')
             file.close()
             self.write_file(self.plot_file, 'Rewards\n')
             epoch = 0
+        return epoch
 
     def write_plot_data(self, rewards):
         self.write_file(self.plot_file, f'{rewards}\n')

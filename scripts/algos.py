@@ -71,6 +71,7 @@ class A2C(Utils):
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.act_space = act_space
+        self.max_rewards = 0
         if self.net_type == 'shared':
             self.model = make_dnn(env, hid_layers=hid_layer, net_type=self.net_type, action_space=act_space)
             self.optim = Adam(self.model.parameters(), lr = lr, eps = 1e-8)
@@ -114,13 +115,25 @@ class A2C(Utils):
         advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
         return torch.tensor(advantage), torch.tensor(target_values)
     
+    def adv_nstep(self, values, next_values, n):
+        rewards = self.buffer.traj['rewards']
+        rets = np.zeros_like(rewards)
+        future_ret = next_values[n-1]
+        not_dones = 1 - np.array(self.buffer.traj['dones'])
+        for t in reversed(range(n)):
+            rets[t] = future_ret = rewards[t] + 0.99*future_ret*not_dones[t]
+
+        advs = torch.tensor(rets) - values
+        target_values = torch.tensor(rets)
+        return advs, target_values
+    
     def log_probs(self, logits, actions):
         if self.act_space == 'disc':
             dist = Categorical(probs = F.softmax(logits))
             log_probs = dist.log_prob(actions)
 
         elif self.act_space == 'cont':
-            mean, std = torch.chunk(logits, 2)
+            mean, std = torch.chunk(logits, 2, dim=1)
             mean, std = F.tanh(mean), F.sigmoid(std).clip(0.08, 0.3)
             dist = MultivariateNormal(mean, std.diag_embed())
             log_probs = dist.log_prob(actions)
@@ -131,7 +144,7 @@ class A2C(Utils):
         logits, next_values = self.model(states), self.model(next_states)[:, -1]
         dist_logits, values = F.softmax(logits[:, :-1]), logits[:, -1]
         log_probs = self.log_probs(dist_logits, actions)
-        advantages, target_values = self.adv_gae(values, next_values)
+        advantages, target_values = self.adv_nstep(torch.flatten(values), torch.flatten(next_values), 5)
         self.optim.zero_grad()
         value_loss = F.mse_loss(values, target_values)
         policy_loss = -(log_probs * advantages).mean()
@@ -143,7 +156,7 @@ class A2C(Utils):
     def separate_loss(self, states, actions, next_states):
         logits, values, next_values = self.actor(states), self.critic(states), self.critic(next_states)
         log_probs = self.log_probs(logits, actions)
-        advantages, target_values = self.adv_gae(values, next_values)
+        advantages, target_values = self.adv_nstep(torch.flatten(values), torch.flatten(next_values), 5)
         value_loss = F.mse_loss(values, target_values)
         policy_loss = -(log_probs*advantages).mean()
         
