@@ -6,7 +6,8 @@ class Utils:
         self.model = None
         self.model_file = ''
         self.plot_file = ''
-        self.shared_net = None
+        self.net_type = ''
+        self.max_rewards = 0
 
     def read_file(self, path):
         file = open(path, 'r')
@@ -31,6 +32,7 @@ class Utils:
 
     def check_status_file(self):
         checkpath = self.read_file(STATUSFILE)
+        epoch = 0
         if checkpath != '':
             epoch = self.load_checkpoint(checkpath) + 1
             file = open(self.plot_file, 'r')
@@ -38,17 +40,19 @@ class Utils:
             file = open(self.plot_file, 'w')
             file.writelines(lines[:epoch+1])
             file.close()
+            return epoch
         else:
             file = open(self.plot_file, 'w')
             file.close()
             self.write_file(self.plot_file, 'Rewards\n')
+            epoch = 0
 
     def write_plot_data(self, rewards):
         self.write_file(self.plot_file, f'{rewards}\n')
 
     def save_checkpoint(self, epoch, checkpath):
         file = open(STATUSFILE, 'w')
-        if self.shared_net:
+        if self.net_type == 'shared':
             checkpoint = {
                 'model_state_dict': self.model.state_dict(),
                 'optim_state_dict': self.optim.state_dict(),
@@ -70,7 +74,7 @@ class Utils:
     def load_checkpoint(self, checkpath):
         print('loading checkpoint..')
         checkpoint = torch.load(checkpath)
-        if self.shared_net:
+        if self.net_type == 'shared':
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optim.load_state_dict(checkpoint['optim_state_dict'])
             self.model.train()
@@ -83,6 +87,11 @@ class Utils:
             self.critic.train()
         print('checkpoint loaded...')
         return checkpoint['epoch']
+    
+    def save_check_interval(self, epoch, interval=50):
+        if not(epoch % interval):
+            checkpath = self.create_checkpoint_file(epoch)
+            self.save_checkpoint(epoch, checkpath)
     
     def load_model(self):
         print('loading model...')
@@ -98,7 +107,7 @@ class Utils:
         print('model loaded...')
 
     def save_model(self):
-        if self.shared_net:
+        if self.net_type != 'shared':
             model = {
                 'actor_state_dict': self.actor.state_dict(),
                 'critic_state_dict': self.critic.state_dict()
@@ -107,3 +116,8 @@ class Utils:
         else:
             torch.save(self.model.state_dict(), self.model_file)
         print('model saved...')
+
+    def save_best_model(self, rewards):
+        if rewards > self.max_rewards:
+            self.max_rewards = rewards
+            self.save_model()

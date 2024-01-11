@@ -23,18 +23,14 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
 
     if action_space == 'disc':
         out = env.action_space.n
+    elif action_space == 'cont':
+        out = np.prod(2*len(env.action_space.sample()))
     
     net_types = {'actor': out, 'critic': 1, 'shared': out+1}
     
     layers.append(nn.Linear(hid_layers[-1], net_types[net_type]))
 
     return nn.Sequential(*layers)
-
-
-env = gym.make('CartPole-v1')
-
-print(make_dnn(env, net_type='actor'))
-
 
 
 

@@ -6,7 +6,10 @@ from algos import REINFORCE
 env = gym.make('LunarLander-v2', render_mode = 'rgb_array')
 
 agent = REINFORCE(env=env, lr=0.0007)
-for ep in range(5000):
+
+epoch = agent.check_status_file()
+
+for ep in range(epoch, 5000):
     done = False
     state = env.reset()[0]
     ep_reward = 0
