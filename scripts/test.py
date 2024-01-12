@@ -1,18 +1,23 @@
-import torch
+from algos import A2C
 import numpy as np
+import gym
+import torch
 
 
+env = gym.make('LunarLander-v2', continuous=True)
 
-def adv_nstep(values, next_values, rewards, n):
-        rets = np.zeros_like(rewards)
-        future_ret = next_values
-        for t in reversed(range(n)):
-            rets[t] = future_ret = rewards[t] + 0.99*future_ret
+agent = A2C(env=env, min_batch_size=256, act_space='cont', net_type='actor-critic')
 
-        advs = rets - values
-        target_values = torch.tensor(rets)
-        return torch.tensor(advs), target_values
 
+state = env.reset()[0]
+
+for i in range(5):
+    action = agent.act(state)
+    next_state, reward, done, *others = env.step(action.cpu().detach().numpy())
+    agent.buffer.add_experience(state, action, next_state, reward, done)
+    state = next_state
+
+agent.train()
 
 
 

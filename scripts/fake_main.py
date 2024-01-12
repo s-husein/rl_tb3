@@ -5,7 +5,7 @@ from algos import A2C
 
 env = gym.make('BipedalWalker-v3', render_mode = 'rgb_array')
 
-agent = A2C(env=env, min_batch_size=256, lr=0.0007, act_space='cont', net_type='actor-critic')
+agent = A2C(env=env, min_batch_size=256, lr=0.0007, act_space='cont', net_type='shared')
 
 epoch = agent.check_status_file()
 

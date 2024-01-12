@@ -71,6 +71,7 @@ class A2C(Utils):
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.act_space = act_space
+        self.check_status_file()
         self.max_rewards = 0
         if self.net_type == 'shared':
             self.model = make_dnn(env, hid_layers=hid_layer, net_type=self.net_type, action_space=act_space)
@@ -110,21 +111,22 @@ class A2C(Utils):
             delta = rewards[t] + 0.99*next_values[t]*not_dones[t] - values[t]
             futureadv = delta + 0.99*0.8*futureadv*not_dones[t]
             advantage[t] = futureadv
-
-        target_values = advantage + values
+        with torch.no_grad():
+            torch.tensor(advantage)
+            target_values = advantage + values
         advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
-        return torch.tensor(advantage), torch.tensor(target_values)
+        return advantage, target_values
     
     def adv_nstep(self, values, next_values, n):
         rewards = self.buffer.traj['rewards']
-        rets = np.zeros_like(rewards)
+        rets = torch.zeros_like(values, dtype=torch.float32)
         future_ret = next_values[n-1]
         not_dones = 1 - np.array(self.buffer.traj['dones'])
-        for t in reversed(range(n)):
+        for t in reversed(range(n+1)):
             rets[t] = future_ret = rewards[t] + 0.99*future_ret*not_dones[t]
-
-        advs = torch.tensor(rets) - values
-        target_values = torch.tensor(rets)
+        with torch.no_grad():
+            advs = rets - values
+            target_values = rets
         return advs, target_values
     
     def log_probs(self, logits, actions):
@@ -142,9 +144,9 @@ class A2C(Utils):
     
     def shared_loss(self, states, actions, next_states):
         logits, next_values = self.model(states), self.model(next_states)[:, -1]
-        dist_logits, values = F.softmax(logits[:, :-1]), logits[:, -1]
+        dist_logits, values = logits[:, :-1], logits[:, -1]
         log_probs = self.log_probs(dist_logits, actions)
-        advantages, target_values = self.adv_nstep(torch.flatten(values), torch.flatten(next_values), 5)
+        advantages, target_values = self.adv_nstep(values, next_values, 2)
         self.optim.zero_grad()
         value_loss = F.mse_loss(values, target_values)
         policy_loss = -(log_probs * advantages).mean()
@@ -154,11 +156,17 @@ class A2C(Utils):
         self.optim.step()
     
     def separate_loss(self, states, actions, next_states):
-        logits, values, next_values = self.actor(states), self.critic(states), self.critic(next_states)
+        logits, values, next_values = self.actor(states), torch.cat(torch.unbind(self.critic(states))), torch.cat(torch.unbind(self.critic(next_states)))
+        print(logits)
+        print(values)
+        print(next_values)
         log_probs = self.log_probs(logits, actions)
-        advantages, target_values = self.adv_nstep(torch.flatten(values), torch.flatten(next_values), 5)
-        value_loss = F.mse_loss(values, target_values)
+        advantages, target_values = self.adv_nstep(values, next_values, 2)
+
+        print(advantages, target_values)
         policy_loss = -(log_probs*advantages).mean()
+        mse_loss = torch.nn.MSELoss()
+        value_loss = mse_loss(values, target_values)
         
         self.act_optim.zero_grad()
         policy_loss.backward()
@@ -172,18 +180,27 @@ class A2C(Utils):
 
 
     def train(self):
-        if self.buffer.size > self.min_batch_size:
-            self.write_plot_data(sum(self.buffer.traj['rewards']))
-            states = torch.stack(self.buffer.traj['states'])
-            actions = torch.stack(self.buffer.traj['actions'])
-            next_states = torch.stack(self.buffer.traj['next_states'])
+        self.write_plot_data(sum(self.buffer.traj['rewards']))
+        # if self.buffer.size > self.min_batch_size:
+        states = torch.stack(self.buffer.traj['states'])
+        actions = torch.stack(self.buffer.traj['actions'])
+        next_states = torch.stack(self.buffer.traj['next_states'])
 
-            if self.net_type == 'shared':
-                self.shared_loss(states, actions, next_states)
-            else:
-                self.separate_loss(states, actions, next_states)
-        else:
-            pass
+        print(states)
+        print(actions)
+        print(next_states)
+        if self.net_type == 'shared':
+            self.shared_loss(states, actions, next_states)
+        elif self.net_type == 'actor-critic':
+            self.separate_loss(states, actions, next_states)
+
+
+        #     if self.net_type == 'shared':
+        #         self.shared_loss(states, actions, next_states)
+        #     else:
+        #         self.separate_loss(states, actions, next_states)
+        # else:
+        #     pass
 
     
 

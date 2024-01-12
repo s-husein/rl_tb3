@@ -89,7 +89,7 @@ class Utils:
         return checkpoint['epoch']
     
     def save_check_interval(self, epoch, interval=50):
-        if not(epoch % interval):
+        if not(epoch % interval) and epoch > 0:
             checkpath = self.create_checkpoint_file(epoch)
             self.save_checkpoint(epoch, checkpath)
     
