@@ -109,15 +109,15 @@ class A2C(Utils):
         rewards = self.buffer.traj['rewards']
         not_dones = 1 - np.array(self.buffer.traj['dones'])
         T = len(rewards)
-        advantage = np.zeros_like(rewards, dtype=np.float32)
+        with torch.no_grad():
+            advantage = torch.zeros_like(values, dtype=torch.float32).to(device)
         futureadv = 0
         for t in reversed(range(T)):
             delta = rewards[t] + 0.99*next_values[t]*not_dones[t] - values[t]
             futureadv = delta + 0.99*0.8*futureadv*not_dones[t]
             advantage[t] = futureadv
         with torch.no_grad():
-            torch.tensor(advantage)
-            target_values = advantage + values
+            target_values = (advantage + values).to(device)
         advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
         return advantage, target_values
     
@@ -174,16 +174,19 @@ class A2C(Utils):
         with torch.no_grad():
             next_values =  torch.cat(torch.unbind(self.critic(next_states)))
         log_probs = self.log_probs(logits, actions)
-        advantages, target_values = self.calc_adv(values, next_values)
+        with torch.no_grad():
+            advantages, target_values = self.calc_adv(values, next_values)
 
+
+        
         policy_loss = -(log_probs*advantages).mean().to(device)
-        value_loss = F.mse_loss(values, target_values).to(device)
-
         self.act_optim.zero_grad()
         policy_loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.4)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.5)
         self.act_optim.step()
 
+
+        value_loss = F.mse_loss(values, target_values).to(device)
         self.crit_optim.zero_grad()
         value_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.4)
@@ -191,6 +194,7 @@ class A2C(Utils):
 
 
     def train(self):
+        print(self.buffer.size)
         if self.buffer.size > self.min_batch_size:
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
@@ -200,7 +204,7 @@ class A2C(Utils):
                 self.shared_loss(states, actions, next_states)
             elif self.net_type == 'actor-critic':
                 self.separate_loss(states, actions, next_states)
-
+            self.buffer.reset()
         else:
             pass
 

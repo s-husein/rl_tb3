@@ -3,13 +3,13 @@ from algos import A2C
 
 
 
-env = gym.make('BipedalWalker-v3', render_mode = 'rgb_array')
+env = gym.make('Pendulum-v1', render_mode = 'rgb_array')
 
-agent = A2C(env=env, min_batch_size=64, lr=0.0007, act_space='cont', net_type='actor-critic', n_step_return=8)
+agent = A2C(env=env, min_batch_size=128, lr=0.0007, act_space='cont', net_type='actor-critic', hid_layer=[64,64], gae_adv=True)
 
 epoch = agent.check_status_file()
 
-for ep in range(epoch, 5000):
+for ep in range(epoch, 10000):
     done = False
     state = env.reset()[0]
     ep_reward = 0
@@ -21,7 +21,7 @@ for ep in range(epoch, 5000):
         state = next_state
         ep_reward += reward
         steps += 1
-        if steps >= 1600:
+        if steps >= 500:
             break
     agent.write_plot_data(ep_reward)
     agent.train()
