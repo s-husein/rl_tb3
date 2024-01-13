@@ -1,15 +1,6 @@
 import torch.nn as nn
-import torch
-import torch.nn.functional as F
-import torch.cuda as cuda
 import numpy as np
 from gym import Env
-from gymenv import Gym
-import gym 
-
-
-device = 'cuda' if cuda.is_available() else 'cpu'
-print(f'using {device}')
 
 
 def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='shared'):

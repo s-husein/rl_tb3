@@ -18,8 +18,3 @@ for i in range(5):
     state = next_state
 
 agent.train()
-
-
-
-
-
