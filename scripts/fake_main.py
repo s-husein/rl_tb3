@@ -5,7 +5,7 @@ from algos import A2C
 
 env = gym.make('BipedalWalker-v3', render_mode = 'rgb_array')
 
-agent = A2C(env=env, min_batch_size=256, lr=0.0007, act_space='cont', net_type='shared')
+agent = A2C(env=env, min_batch_size=64, lr=0.0007, act_space='cont', net_type='actor-critic', n_step_return=8)
 
 epoch = agent.check_status_file()
 
@@ -23,7 +23,8 @@ for ep in range(epoch, 5000):
         steps += 1
         if steps >= 1600:
             break
+    agent.write_plot_data(ep_reward)
     agent.train()
     agent.save_check_interval(epoch = ep)
-    agent.save_best_model(300)
+    agent.save_best_model(ep_reward)
     print(f'ep. {ep}\tepisode rewards: {ep_reward}')

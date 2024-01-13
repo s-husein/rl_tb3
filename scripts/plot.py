@@ -1,7 +1,7 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data = pd.read_csv('/home/user/fyp/src/rl_tb3/plots/reinforce.txt')
+data = pd.read_csv('/home/user/fyp/src/rl_tb3/plots/a2c_plot.txt')
 
 
 print(data.max())

@@ -66,15 +66,17 @@ class REINFORCE(Utils):
 
 
 class A2C(Utils):
-    def __init__(self, env: Env, name='a2c', min_batch_size=128, hid_layer = [128, 128], net_type='shared', lr = 0.00003, act_space = 'disc'):
+    def __init__(self, env: Env, name='a2c', min_batch_size=128, hid_layer = [128, 128],
+                 net_type='shared', lr = 0.00003, act_space = 'disc', n_step_return = None, gae_adv = False):
         self.buffer = Rollout()
         self.min_batch_size = min_batch_size
         self.net_type = net_type
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.act_space = act_space
-        self.check_status_file()
         self.max_rewards = 0
+        self.gae_adv = gae_adv
+        self.n_step_ret = n_step_return
         if self.net_type == 'shared':
             self.model = make_dnn(env, hid_layers=hid_layer, net_type=self.net_type, action_space=act_space).to(device)
             self.optim = Adam(self.model.parameters(), lr = lr, eps = 1e-8)
@@ -131,6 +133,14 @@ class A2C(Utils):
             target_values = rets.to(device)
         return advs, target_values
     
+    def calc_adv(self, values, next_values):
+        if self.n_step_ret is not None:
+            advs, target_values = self.adv_nstep(values, next_values, self.n_step_ret)
+        elif self.gae_adv:
+            advs, target_values = self.adv_gae(values, next_values)
+
+        return advs, target_values
+    
     def log_probs(self, logits, actions):
         if self.act_space == 'disc':
             dist = Categorical(probs = F.softmax(logits))
@@ -145,10 +155,12 @@ class A2C(Utils):
         return log_probs
     
     def shared_loss(self, states, actions, next_states):
-        logits, next_values = self.model(states), self.model(next_states)[:, -1]
+        logits = self.model(states)
+        with torch.no_grad():
+            next_values = self.model(next_states)[:, -1]
         dist_logits, values = logits[:, :-1], logits[:, -1]
         log_probs = self.log_probs(dist_logits, actions)
-        advantages, target_values = self.adv_nstep(values, next_values, 2)
+        advantages, target_values = self.calc_adv(values, next_values)
         self.optim.zero_grad()
         value_loss = F.mse_loss(values, target_values).to(device)
         policy_loss = -(log_probs * advantages).mean().to(device)
@@ -162,16 +174,10 @@ class A2C(Utils):
         with torch.no_grad():
             next_values =  torch.cat(torch.unbind(self.critic(next_states)))
         log_probs = self.log_probs(logits, actions)
-        advantages, target_values = self.adv_nstep(values, next_values, 2)
+        advantages, target_values = self.calc_adv(values, next_values)
 
-        print(advantages, target_values)
         policy_loss = -(log_probs*advantages).mean().to(device)
         value_loss = F.mse_loss(values, target_values).to(device)
-
-        loss = policy_loss + value_loss
-
-        make_dot(loss).render('graph', format="png")
-
 
         self.act_optim.zero_grad()
         policy_loss.backward()
@@ -185,27 +191,18 @@ class A2C(Utils):
 
 
     def train(self):
-        self.write_plot_data(sum(self.buffer.traj['rewards']))
-        # if self.buffer.size > self.min_batch_size:
-        states = torch.stack(self.buffer.traj['states']).to(device)
-        actions = torch.stack(self.buffer.traj['actions']).to(device)
-        next_states = torch.stack(self.buffer.traj['next_states']).to(device)
+        if self.buffer.size > self.min_batch_size:
+            states = torch.stack(self.buffer.traj['states']).to(device)
+            actions = torch.stack(self.buffer.traj['actions']).to(device)
+            next_states = torch.stack(self.buffer.traj['next_states']).to(device)
 
-        print(states)
-        print(actions)
-        print(next_states)
-        if self.net_type == 'shared':
-            self.shared_loss(states, actions, next_states)
-        elif self.net_type == 'actor-critic':
-            self.separate_loss(states, actions, next_states)
+            if self.net_type == 'shared':
+                self.shared_loss(states, actions, next_states)
+            elif self.net_type == 'actor-critic':
+                self.separate_loss(states, actions, next_states)
 
-
-        #     if self.net_type == 'shared':
-        #         self.shared_loss(states, actions, next_states)
-        #     else:
-        #         self.separate_loss(states, actions, next_states)
-        # else:
-        #     pass
+        else:
+            pass
 
     
 
