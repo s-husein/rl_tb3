@@ -5,10 +5,11 @@ from gym import Env
 from torch.optim import Adam
 import torch
 import torch.nn.functional as F
-from torch.distributions import Categorical, MultivariateNormal
+from torch.distributions import Categorical, Normal
 import numpy as np
 from paths import MODELFOLDER, PLOTFOLDER
 from torchviz import make_dot
+from copy import deepcopy
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
@@ -81,6 +82,7 @@ class A2C(Utils):
             self.model = make_dnn(env, hid_layers=hid_layer, net_type=self.net_type, action_space=act_space).to(device)
             self.optim = Adam(self.model.parameters(), lr = lr, eps = 1e-8)
             self.model.train()
+            print(self.model)
         elif self.net_type == 'actor-critic':
             self.actor = make_dnn(env, net_type='actor', hid_layers=hid_layer, action_space=act_space).to(device)
             self.critic = make_dnn(env, net_type='critic', hid_layers=hid_layer, action_space=act_space).to(device)
@@ -88,6 +90,7 @@ class A2C(Utils):
             self.crit_optim = Adam(self.critic.parameters(), lr = lr, eps = 1e-8)
             self.actor.train()
             self.critic.train()
+            print(f'actor: {self.actor}\t critic {self.critic}')
 
     def act(self, state):
         state = torch.from_numpy(state).to(device)
@@ -100,10 +103,28 @@ class A2C(Utils):
                 dist = Categorical(logits=logits)
             elif self.act_space == 'cont':
                 mean, std = torch.chunk(logits, 2)
-                mean, std = F.tanh(mean), F.sigmoid(std).clip(0.01, 0.3)
-                dist = MultivariateNormal(mean, std.diag_embed())
+                mean, std = F.tanh(mean), F.sigmoid(std).clip(0.08, 0.3)
+                dist = Normal(mean, std)
             action = dist.sample()
         return action.to(device)
+    
+    def calc_values(self, states):
+        if self.net_type == 'shared':
+            values = self.model(states)[:, -1]
+
+        elif self.net_type == 'actor-critic':
+            values = torch.cat(torch.unbind(self.critic(states)))
+
+        return values
+    
+    def calc_pd(self, states):
+        if self.net_type == 'shared':
+            logits = self.model(states)[:, :-1]
+
+        elif self.net_type == 'actor-critic':
+            logits = self.actor(states)
+
+        return logits
     
     def adv_gae(self, values, next_values):
         rewards = self.buffer.traj['rewards']
@@ -116,24 +137,24 @@ class A2C(Utils):
             delta = rewards[t] + 0.99*next_values[t]*not_dones[t] - values[t]
             futureadv = delta + 0.99*0.8*futureadv*not_dones[t]
             advantage[t] = futureadv
-        with torch.no_grad():
-            target_values = (advantage + values).to(device)
+        target_values = (advantage + values).to(device)
         advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
         return advantage, target_values
     
     def adv_nstep(self, values, next_values, n):
         rewards = self.buffer.traj['rewards']
-        rets = torch.zeros_like(values, dtype=torch.float32)
+        with torch.no_grad():
+            rets = torch.zeros_like(values, dtype=torch.float32)
         future_ret = next_values[n-1]
         not_dones = 1 - np.array(self.buffer.traj['dones'])
         for t in reversed(range(n+1)):
             rets[t] = future_ret = rewards[t] + 0.99*future_ret*not_dones[t]
-        with torch.no_grad():
-            advs = (rets - values).to(device)
-            target_values = rets.to(device)
+        advs = (rets - values).to(device)
+        target_values = rets.to(device)
         return advs, target_values
     
     def calc_adv(self, values, next_values):
+        values = values.detach()
         if self.n_step_ret is not None:
             advs, target_values = self.adv_nstep(values, next_values, self.n_step_ret)
         elif self.gae_adv:
@@ -143,62 +164,119 @@ class A2C(Utils):
     
     def log_probs(self, logits, actions):
         if self.act_space == 'disc':
-            dist = Categorical(probs = F.softmax(logits))
+            dist = Categorical(probs = F.softmax(logits, dim=1))
             log_probs = dist.log_prob(actions)
+            entropy = dist.entropy()
 
         elif self.act_space == 'cont':
             mean, std = torch.chunk(logits, 2, dim=1)
-            mean, std = F.tanh(mean), F.sigmoid(std).clip(0.08, 0.3)
-            dist = MultivariateNormal(mean, std.diag_embed())
-            log_probs = dist.log_prob(actions)
+            mean, std = F.tanh(mean), F.sigmoid(std).clip(0.09, 0.3)
+            dist = Normal(mean, std)
+            log_probs = dist.log_prob(actions).sum(dim=1)
+            entropy = dist.entropy().sum(dim=1)
 
-        return log_probs
+        return log_probs, entropy
     
     def shared_loss(self, states, actions, next_states):
-        logits = self.model(states)
+        logits = self.calc_pd(states)
+        values = self.calc_values(states)
         with torch.no_grad():
-            next_values = self.model(next_states)[:, -1]
-        dist_logits, values = logits[:, :-1], logits[:, -1]
-        log_probs = self.log_probs(dist_logits, actions)
+            next_values = self.calc_values(next_states)
+        log_probs, entropy = self.log_probs(logits, actions)
         advantages, target_values = self.calc_adv(values, next_values)
         self.optim.zero_grad()
         value_loss = F.mse_loss(values, target_values).to(device)
-        policy_loss = -(log_probs * advantages).mean().to(device)
+        policy_loss = ((-log_probs * advantages) - 0.001*entropy).mean().to(device)
         loss = value_loss+policy_loss
         loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), 0.5)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), 0.4)
         self.optim.step()
     
     def separate_loss(self, states, actions, next_states):
-        logits, values = self.actor(states), torch.cat(torch.unbind(self.critic(states)))
+        logits = self.calc_pd(states)
+        values = self.calc_values(states)
         with torch.no_grad():
-            next_values =  torch.cat(torch.unbind(self.critic(next_states)))
-        log_probs = self.log_probs(logits, actions)
-        with torch.no_grad():
-            advantages, target_values = self.calc_adv(values, next_values)
-
-
+            next_values = self.calc_values(next_states)
+        log_probs, entropy = self.log_probs(logits, actions)
+        advantages, target_values = self.calc_adv(values, next_values)
         
-        policy_loss = -(log_probs*advantages).mean().to(device)
+        policy_loss = ((-log_probs*advantages)-0.005*entropy).mean().to(device)
         self.act_optim.zero_grad()
         policy_loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.5)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.3)
         self.act_optim.step()
-
 
         value_loss = F.mse_loss(values, target_values).to(device)
         self.crit_optim.zero_grad()
         value_loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.4)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.5)
         self.crit_optim.step()
+
+        # make_dot(policy_loss+value_loss).render('/home/user/fyp/src/rl_tb3/graph', format='png')
 
 
     def train(self):
-        print(self.buffer.size)
         if self.buffer.size > self.min_batch_size:
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
             next_states = torch.stack(self.buffer.traj['next_states']).to(device)
+            if self.net_type == 'shared':
+                self.shared_loss(states, actions, next_states)
+            elif self.net_type == 'actor-critic':
+                self.separate_loss(states, actions, next_states)
+            self.buffer.reset()
+        else:
+            pass
+
+
+
+class PPO(A2C):
+    def __init__(self, k_epochs, batch_size = 128, min_batch_size=512):
+        super(PPO, self).__init__(min_batch_size=min_batch_size)
+        self.batch_size = batch_size
+        self.k_epochs = k_epochs
+        if  self.net_type == 'shared':
+            self.old_policy = deepcopy(self.model)
+            assert id(self.old_policy) != id(self.model)
+        elif self.net_type == 'actor-critic':
+            self.old_policy = deepcopy(self.actor)
+            assert id(self.old_policy) != id(self.actor)
+
+    def act(self, state):
+        state = torch.from_numpy(state).to(device)
+        with torch.no_grad():
+            if self.net_type == 'shared':
+                logits = self.old_policy(state)[:-1]
+            else:
+                logits = self.old_policy(state)
+
+            if self.act_space == 'disc':
+                dist = Categorical(logits=logits)
+            elif self.act_space == 'cont':
+                mean, std = torch.chunk(logits, 2)
+                mean, std = F.tanh(mean), F.sigmoid(std).clip(0.08, 0.3)
+                dist = Normal(mean, std)
+            action = dist.sample()
+        return action.to(device)
+    
+
+    def train(self):
+        if self.net_type == 'shared':
+            self.old_policy.load_state_dict(self.model)
+        elif self.net_type == 'actor-critic':
+            self.old_policy.load_state_dict(self.actor)
+
+        if self.buffer.size > self.min_batch_size:
+            states = torch.stack(self.buffer.traj['states']).to(device)
+            actions = torch.stack(self.buffer.traj['actions']).to(device)
+            next_states = torch.stack(self.buffer.traj['next_states']).to(device)
+            values = self.calc_values(states)
+            with torch.no_grad():
+                next_values = self.calc_values(next_states)
+            
+            advs, tar_values = self.calc_adv(values, next_values)
+            
+
 
             if self.net_type == 'shared':
                 self.shared_loss(states, actions, next_states)

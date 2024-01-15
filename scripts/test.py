@@ -1,20 +1,13 @@
-from algos import A2C
+import torch 
 import numpy as np
-import gym
-import torch
 
 
-env = gym.make('LunarLander-v2', continuous=True)
+def create_tensor(x):
+    with torch.no_grad():
+        return torch.tensor(x, requires_grad=True)
 
-agent = A2C(env=env, min_batch_size=256, act_space='cont', net_type='actor-critic')
 
+x = np.array([1, 2, 3, 4, 5], dtype=np.float32)
+y = create_tensor(x)
 
-state = env.reset()[0]
-
-for i in range(5):
-    action = agent.act(state)
-    next_state, reward, done, *others = env.step(action.cpu().detach().numpy())
-    agent.buffer.add_experience(state, action, next_state, reward, done)
-    state = next_state
-
-agent.train()
+print(y)
