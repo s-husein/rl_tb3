@@ -14,6 +14,10 @@ from copy import deepcopy
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
 
+def get_graph(x):
+    make_dot(x).render('/home/user/fyp/src/rl_tb3/graph', format='png')
+
+
 class REINFORCE(Utils):
     def __init__(self, env: Env, name='reinforce', hid_layer = [128, 128], net_type='shared', lr = 0.00003, act_space = 'disc'):
         self.buffer = Rollout()
@@ -68,7 +72,8 @@ class REINFORCE(Utils):
 
 class A2C(Utils):
     def __init__(self, env: Env, name='a2c', min_batch_size=128, hid_layer = [128, 128],
-                 net_type='shared', lr = 0.00003, act_space = 'disc', n_step_return = None, gae_adv = False):
+                 net_type='shared', lr = 0.00003, act_space = 'disc', n_step_return = None, lam = None,
+                 std_min_clip = 0.08, beta = 0.004):
         self.buffer = Rollout()
         self.min_batch_size = min_batch_size
         self.net_type = net_type
@@ -76,8 +81,10 @@ class A2C(Utils):
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.act_space = act_space
         self.max_rewards = 0
-        self.gae_adv = gae_adv
         self.n_step_ret = n_step_return
+        self.lam = lam
+        self.std_min_clip = std_min_clip
+        self.beta = beta
         if self.net_type == 'shared':
             self.model = make_dnn(env, hid_layers=hid_layer, net_type=self.net_type, action_space=act_space).to(device)
             self.optim = Adam(self.model.parameters(), lr = lr, eps = 1e-8)
@@ -103,7 +110,7 @@ class A2C(Utils):
                 dist = Categorical(logits=logits)
             elif self.act_space == 'cont':
                 mean, std = torch.chunk(logits, 2)
-                mean, std = F.tanh(mean), F.sigmoid(std).clip(0.08, 0.3)
+                mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
                 dist = Normal(mean, std)
             action = dist.sample()
         return action.to(device)
@@ -135,7 +142,7 @@ class A2C(Utils):
         futureadv = 0
         for t in reversed(range(T)):
             delta = rewards[t] + 0.99*next_values[t]*not_dones[t] - values[t]
-            futureadv = delta + 0.99*0.8*futureadv*not_dones[t]
+            futureadv = delta + 0.99*self.lam*futureadv*not_dones[t]
             advantage[t] = futureadv
         target_values = (advantage + values).to(device)
         advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
@@ -157,7 +164,7 @@ class A2C(Utils):
         values = values.detach()
         if self.n_step_ret is not None:
             advs, target_values = self.adv_nstep(values, next_values, self.n_step_ret)
-        elif self.gae_adv:
+        elif self.lam is not None:
             advs, target_values = self.adv_gae(values, next_values)
 
         return advs, target_values
@@ -170,7 +177,7 @@ class A2C(Utils):
 
         elif self.act_space == 'cont':
             mean, std = torch.chunk(logits, 2, dim=1)
-            mean, std = F.tanh(mean), F.sigmoid(std).clip(0.09, 0.3)
+            mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
             dist = Normal(mean, std)
             log_probs = dist.log_prob(actions).sum(dim=1)
             entropy = dist.entropy().sum(dim=1)
@@ -186,7 +193,7 @@ class A2C(Utils):
         advantages, target_values = self.calc_adv(values, next_values)
         self.optim.zero_grad()
         value_loss = F.mse_loss(values, target_values).to(device)
-        policy_loss = ((-log_probs * advantages) - 0.001*entropy).mean().to(device)
+        policy_loss = ((-log_probs * advantages) - self.beta*entropy).mean().to(device)
         loss = value_loss+policy_loss
         loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), 0.4)
@@ -200,7 +207,7 @@ class A2C(Utils):
         log_probs, entropy = self.log_probs(logits, actions)
         advantages, target_values = self.calc_adv(values, next_values)
         
-        policy_loss = ((-log_probs*advantages)-0.005*entropy).mean().to(device)
+        policy_loss = ((-log_probs*advantages)-self.beta*entropy).mean().to(device)
         self.act_optim.zero_grad()
         policy_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.3)
@@ -212,7 +219,6 @@ class A2C(Utils):
         torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.5)
         self.crit_optim.step()
 
-        # make_dot(policy_loss+value_loss).render('/home/user/fyp/src/rl_tb3/graph', format='png')
 
 
     def train(self):
@@ -231,12 +237,19 @@ class A2C(Utils):
 
 
 class PPO(A2C):
-    def __init__(self, env: Env, k_epochs, batch_size = 128, hid_layer = [128, 64], min_batch_size=512, net_type='shared', lr=0.0003, act_space = 'disc',
-                 name='ppo'):
+    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 128], 
+                min_batch_size=2048, net_type='shared', lr=0.0003, act_space = 'disc',
+                 name='ppo', lam=0.8, std_min_clip = 0.07, beta=0.01, eps_clip=0.1):
+        
+
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_type=net_type, lr=lr,
-                                  act_space=act_space, gae_adv=True, hid_layer=hid_layer)
+                                  act_space=act_space, gae_adv=True, hid_layer=hid_layer, lam=lam, std_min_clip=std_min_clip,
+                                  beta = beta)
+        
+
         self.batch_size = batch_size
         self.k_epochs = k_epochs
+        self.eps_clip = eps_clip
 
         if  self.net_type == 'shared':
             self.old_policy = deepcopy(self.model)
@@ -257,7 +270,7 @@ class PPO(A2C):
                 dist = Categorical(logits=logits)
             elif self.act_space == 'cont':
                 mean, std = torch.chunk(logits, 2)
-                mean, std = F.tanh(mean), F.sigmoid(std).clip(0.08, 0.3)
+                mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.3)
                 dist = Normal(mean, std)
             action = dist.sample()
         return action.to(device)
@@ -276,20 +289,22 @@ class PPO(A2C):
 
         surr1 = ratios * advs
 
-        surr2 = torch.clamp(ratios, 1.0 - 0.01, 1.0 + 0.01) * advs
+        surr2 = torch.clamp(ratios, 1.0 - self.eps_clip, 1.0 + self.eps_clip) * advs
 
         clip_loss = -torch.min(surr1, surr2).mean()
         value_loss = F.mse_loss(values, tar_values).to(device)
-        policy_loss = (clip_loss - 0.005*entropy.mean()).to(device)
+        policy_loss = (clip_loss - self.beta*entropy.mean()).to(device)
 
         self.optim.zero_grad()
         loss = value_loss+policy_loss
         loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), 0.4)
         self.optim.step()
+
     
-    def separate_loss(self, states, actions, advs, values, tar_values):
+    def separate_loss(self, states, actions, advs, tar_values):
         logits = self.calc_pd(states)
+        values = self.calc_values(states)
         log_probs, entropy = self.log_probs(logits, actions)
 
         with torch.no_grad():
@@ -302,57 +317,57 @@ class PPO(A2C):
 
         surr1 = ratios * advs
 
-        surr2 = torch.clamp(ratios, 1.0 - 0.01, 1.0 + 0.01) * advs
+        surr2 = torch.clamp(ratios, 1.0 - self.eps_clip, 1.0 + self.eps_clip) * advs
 
         clip_loss = -torch.min(surr1, surr2).mean()
         
-        policy_loss = (clip_loss - (0.005*entropy).mean()).to(device)
+        policy_loss = (clip_loss - (self.beta*entropy).mean()).to(device)
         self.act_optim.zero_grad()
         policy_loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.3)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.6)
         self.act_optim.step()
 
         value_loss = F.mse_loss(values, tar_values).to(device)
         self.crit_optim.zero_grad()
         value_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.5)
-        self.crit_optim.step()
-    
+        self.crit_optim.step()    
+
 
     def train(self):
-        if self.net_type == 'shared':
-            self.old_policy.load_state_dict(self.model)
-        elif self.net_type == 'actor-critic':
-            self.old_policy.load_state_dict(self.actor)
 
         if self.buffer.size > self.min_batch_size:
+            if self.net_type == 'shared':
+                self.old_policy.load_state_dict(self.model.state_dict())
+            elif self.net_type == 'actor-critic':
+                self.old_policy.load_state_dict(self.actor.state_dict())
+
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
             next_states = torch.stack(self.buffer.traj['next_states']).to(device)
-            values = self.calc_values(states)
             with torch.no_grad():
+                values = self.calc_values(states)
                 next_values = self.calc_values(next_states)
             advs, tar_values = self.calc_adv(values, next_values)
 
-
-            for _ in self.k_epochs:
-                mini_batches = self.buffer.get_mini_batches()
+            for _ in range(self.k_epochs):
+                mini_batches = self.buffer.get_mini_batches(self.batch_size)
 
                 for mini_batch in mini_batches:
                     mini_batch = np.array(mini_batch)
                     
-                    min_states = min_actions = min_advs = min_tar_values, min_values = torch.zeros(len(mini_batch)).to(device)
+                    min_states = min_actions = min_advs = min_tar_values = torch.zeros(len(mini_batch)).to(device)
 
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
                     min_tar_values = torch.tensor([tar_values[ind] for ind in mini_batch]).to(device)
-                    min_values = torch.tensor([values[ind] for ind in mini_batch]).to(device)
 
                     if self.net_type == 'shared':
-                        self.shared_loss(states=min_states, actions=min_actions, values=min_values, advs=min_advs, tar_values=min_tar_values)
+                        self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)
                     elif self.net_type == 'actor-critic':
-                        self.separate_loss(min_states, min_actions, min_advs, min_values, min_tar_values)
+                        self.separate_loss(min_states, min_actions, min_advs, min_tar_values)
+                    
             self.buffer.reset()
         else:
             pass

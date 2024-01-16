@@ -1,12 +1,13 @@
 import gym
-from algos import A2C
+from algos import A2C, PPO
 
 
 
-env = gym.make('LunarLander-v2', render_mode = 'rgb_array')
+env = gym.make('BipedalWalker-v3', render_mode = 'rgb_array')
 
-agent = A2C(env=env, name='a2c_lunar',min_batch_size=128, 
-            lr=0.007, act_space='disc', net_type='actor-critic', hid_layer=[64,64], gae_adv=True)
+agent = PPO(env=env, k_epochs=10, net_type='actor-critic',
+            name='ppo_bipedal', act_space='cont', min_batch_size=1024,
+            batch_size=128, lr=0.0003, hid_layer=[64, 64])
 
 epoch = agent.check_status_file()
 
@@ -22,7 +23,7 @@ for ep in range(epoch, 10001):
         state = next_state
         ep_reward += reward
         steps += 1
-        if steps >= 500:
+        if steps >= 1600:
             break
     agent.write_plot_data(ep_reward)
     agent.train()
