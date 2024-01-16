@@ -23,7 +23,7 @@ class Gym(gym.Env):
         if use_conv:
             img_shape = (410, 1080, 1)
         else:
-            img_shape = (20, 54, 1)
+            img_shape = (18, 32, 1)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
         if disc_action:
             self.action_space = gym.spaces.Discrete(3)
@@ -39,7 +39,7 @@ class Gym(gym.Env):
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
         # reward, done = self.get_reward_d(pub_action, observation)
-        return observation, reward, done, False, {}
+        return observation.flatten().astype(np.float32), reward, done, False, {}
 
     def reset(self, seed=None):
         super().reset(seed=seed)
@@ -49,19 +49,21 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        return observation, {}
+        return observation.flatten().astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
         done = False
-        state_reward = 0
+        reward = 0
 
-        if (np.sum(state < 15) > 60):
-            state_reward = -10
-            done = True
         if self.disc_action:
-            reward = 0.03 + state_reward
+            reward = 0.03
         else:
-            reward = (action[0])/(abs(action[1]) + 1) + state_reward - 0.01
+            reward = (action[0])/(abs(action[1]) + 0.1) - 0.01
+        
+        if (np.sum(state < 15) > 60):
+            reward = -100
+            done = True
+        
         return reward, done
 
     def act_d(self, action): #for discrete action space
@@ -81,18 +83,13 @@ class Gym(gym.Env):
         self.action_pub.publish(pub_act)
 
     def get_observation(self):
-        ros_img = rospy.wait_for_message('/camera/depth/image_raw', Image, 10)
+        ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
         cv_img = cv_img/6.0
         cv_img = np.nan_to_num(cv_img)
         cv_img = (cv_img*255).astype(np.uint8)
-        # cv_img = cv_img[0:410, 100:1180]
-        cv_img = cv_img[140:410, 150:1130]
-        cv_img = np.reshape(cv_img, (*cv_img.shape, 1))
         if not self.use_conv:
-            # cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
-            cv_img = cv.resize(cv_img, (0, 0), fx = 0.04, fy = 0.06)
-            cv_img = np.reshape(cv_img, newshape=(*cv_img.shape, 1))
+            cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
         return cv_img
 
 

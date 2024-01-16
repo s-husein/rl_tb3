@@ -80,7 +80,7 @@ class A2C(Utils):
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.act_space = act_space
-        self.max_rewards = 0
+        self.max_rewards = -1000
         self.n_step_ret = n_step_return
         self.lam = lam
         self.std_min_clip = std_min_clip
@@ -243,7 +243,7 @@ class PPO(A2C):
         
 
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_type=net_type, lr=lr,
-                                  act_space=act_space, gae_adv=True, hid_layer=hid_layer, lam=lam, std_min_clip=std_min_clip,
+                                  act_space=act_space, hid_layer=hid_layer, lam=lam, std_min_clip=std_min_clip,
                                   beta = beta)
         
 

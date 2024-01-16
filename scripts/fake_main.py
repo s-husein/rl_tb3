@@ -1,23 +1,24 @@
-import gym
+from gymenv import Gym
+
 from algos import A2C, PPO
 
 
 
-env = gym.make('BipedalWalker-v3', render_mode = 'rgb_array')
+env = Gym(disc_action=False)
 
-agent = PPO(env=env, k_epochs=10, net_type='actor-critic',
-            name='ppo_bipedal', act_space='cont', min_batch_size=1024,
-            batch_size=128, lr=0.0003, hid_layer=[64, 64])
+agent = PPO(env=env, k_epochs=12, net_type='actor-critic',
+            name='ppo', act_space='cont', min_batch_size=1024,
+            batch_size=256, lr=0.0003, hid_layer=[256, 256], std_min_clip=0.1, eps_clip=0.2)
 
 epoch = agent.check_status_file()
 
-for ep in range(epoch, 10001):
+for ep in range(epoch, 500001):
     done = False
     state = env.reset()[0]
     ep_reward = 0
     steps = 0
     while not done:
-        action = agent.act(state)
+        action = agent.act(state.flatten())
         next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
         agent.buffer.add_experience(state, action, next_state, reward, done)
         state = next_state
@@ -26,7 +27,7 @@ for ep in range(epoch, 10001):
         if steps >= 1600:
             break
     agent.write_plot_data(ep_reward)
-    agent.train()
+    # agent.train()
     agent.save_check_interval(epoch = ep)
     agent.save_best_model(ep_reward)
     print(f'ep. {ep}\tepisode rewards: {ep_reward}')
