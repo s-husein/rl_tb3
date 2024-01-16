@@ -231,10 +231,13 @@ class A2C(Utils):
 
 
 class PPO(A2C):
-    def __init__(self, k_epochs, batch_size = 128, min_batch_size=512):
-        super(PPO, self).__init__(min_batch_size=min_batch_size)
+    def __init__(self, env: Env, k_epochs, batch_size = 128, hid_layer = [128, 64], min_batch_size=512, net_type='shared', lr=0.0003, act_space = 'disc',
+                 name='ppo'):
+        super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_type=net_type, lr=lr,
+                                  act_space=act_space, gae_adv=True, hid_layer=hid_layer)
         self.batch_size = batch_size
         self.k_epochs = k_epochs
+
         if  self.net_type == 'shared':
             self.old_policy = deepcopy(self.model)
             assert id(self.old_policy) != id(self.model)
@@ -262,9 +265,24 @@ class PPO(A2C):
     def shared_loss(self, states, actions, values, advs, tar_values):
         logits = self.calc_pd(states)
         log_probs, entropy = self.log_probs(logits, actions)
-        self.optim.zero_grad()
+
+        with torch.no_grad():
+            old_logits = self.old_policy(states)
+            old_log_probs = self.log_probs(old_logits, actions)[0]
+
+        assert old_log_probs.shape == log_probs.shape
+        
+        ratios = torch.exp(log_probs - old_log_probs)
+
+        surr1 = ratios * advs
+
+        surr2 = torch.clamp(ratios, 1.0 - 0.01, 1.0 + 0.01) * advs
+
+        clip_loss = -torch.min(surr1, surr2).mean()
         value_loss = F.mse_loss(values, tar_values).to(device)
-        policy_loss = ((-log_probs * advs) - 0.001*entropy).mean().to(device)
+        policy_loss = (clip_loss - 0.005*entropy.mean()).to(device)
+
+        self.optim.zero_grad()
         loss = value_loss+policy_loss
         loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.model.parameters(), 0.4)
@@ -276,7 +294,7 @@ class PPO(A2C):
 
         with torch.no_grad():
             old_logits = self.old_policy(states)
-            old_log_probs = self.log_probs(logits, actions)[0]
+            old_log_probs = self.log_probs(old_logits, actions)[0]
 
         assert old_log_probs.shape == log_probs.shape
         
@@ -321,13 +339,9 @@ class PPO(A2C):
                 mini_batches = self.buffer.get_mini_batches()
 
                 for mini_batch in mini_batches:
-                    min_states = []
-                    min_actions = []
-                    min_advs = []
-                    min_tar_values = []
-                    min_values = []
-
                     mini_batch = np.array(mini_batch)
+                    
+                    min_states = min_actions = min_advs = min_tar_values, min_values = torch.zeros(len(mini_batch)).to(device)
 
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
