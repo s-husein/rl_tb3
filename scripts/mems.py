@@ -17,10 +17,18 @@ class Rollout:
         self.size = 0
 
     def get_mini_batches(self, mb_size):
-        chunks = self.size // mb_size
+
         indices = np.arange(self.size)
-        np.random.shuffle(indices)
-        mini_batches = torch.chunk(torch.tensor(indices), chunks)
+        # np.random.shuffle(indices)
+
+        mini_bts = round(self.size/mb_size)
+        mini_batches = []
+        ind = 0
+        for i in range(mini_bts-1):
+            mini_batches.append(indices[ind: ind+mb_size])
+            ind += mb_size
+        mini_batches.append(indices[ind:])
+
         return mini_batches
 
     def add_experience(self, state, action, next_state, reward, done):

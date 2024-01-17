@@ -93,8 +93,8 @@ class A2C(Utils):
         elif self.net_type == 'actor-critic':
             self.actor = make_dnn(env, net_type='actor', hid_layers=hid_layer, action_space=act_space).to(device)
             self.critic = make_dnn(env, net_type='critic', hid_layers=hid_layer, action_space=act_space).to(device)
-            self.act_optim = Adam(self.actor.parameters(), lr = lr, eps = 1e-8)
-            self.crit_optim = Adam(self.critic.parameters(), lr = lr, eps = 1e-8)
+            self.act_optim = Adam(self.actor.parameters(), lr = lr, eps = 1e-5)
+            self.crit_optim = Adam(self.critic.parameters(), lr = lr, eps = 1e-5)
             self.actor.train()
             self.critic.train()
             print(f'actor: {self.actor}\t critic {self.critic}')
@@ -324,7 +324,7 @@ class PPO(A2C):
         policy_loss = (clip_loss - (self.beta*entropy).mean()).to(device)
         self.act_optim.zero_grad()
         policy_loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.6)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.5)
         self.act_optim.step()
 
         value_loss = F.mse_loss(values, tar_values).to(device)
@@ -337,10 +337,7 @@ class PPO(A2C):
     def train(self):
 
         if self.buffer.size > self.min_batch_size:
-            if self.net_type == 'shared':
-                self.old_policy.load_state_dict(self.model.state_dict())
-            elif self.net_type == 'actor-critic':
-                self.old_policy.load_state_dict(self.actor.state_dict())
+            print('training...')
 
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
@@ -353,11 +350,8 @@ class PPO(A2C):
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
 
-                for mini_batch in mini_batches:
-                    mini_batch = np.array(mini_batch)
-                    
+                for mini_batch in mini_batches:                    
                     min_states = min_actions = min_advs = min_tar_values = torch.zeros(len(mini_batch)).to(device)
-
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
@@ -369,6 +363,11 @@ class PPO(A2C):
                         self.separate_loss(min_states, min_actions, min_advs, min_tar_values)
                     
             self.buffer.reset()
+            print('trained...')
+            if self.net_type == 'shared':
+                self.old_policy.load_state_dict(self.model.state_dict())
+            elif self.net_type == 'actor-critic':
+                self.old_policy.load_state_dict(self.actor.state_dict())
         else:
             pass
 

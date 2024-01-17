@@ -86,8 +86,8 @@ class Gym(gym.Env):
         ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
         cv_img = cv_img/6.0
-        cv_img = np.nan_to_num(cv_img)
         cv_img = (cv_img*255).astype(np.uint8)
+        cv_img = np.nan_to_num(cv_img, nan=0.0)
         if not self.use_conv:
             cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
         return cv_img
