@@ -39,7 +39,7 @@ class Gym(gym.Env):
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
         # reward, done = self.get_reward_d(pub_action, observation)
-        return observation.flatten().astype(np.float32), reward, done, False, {}
+        return (observation.flatten()/255.0).astype(np.float32), reward, done, False, {}
 
     def reset(self, seed=None):
         super().reset(seed=seed)
@@ -49,7 +49,7 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        return observation.flatten().astype(np.float32), {}
+        return (observation.flatten()/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
         done = False
@@ -109,5 +109,10 @@ class Gym(gym.Env):
 
     def is_disc(self):
         return self.disc_action
+    
+    def render(self):
+        state = self.get_observation()
+        cv.imshow('state', state)
+        cv.waitKey(1)
     # def close(self):
     #     os.system('bash /home/user/env_close.sh')
