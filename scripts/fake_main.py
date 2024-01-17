@@ -3,8 +3,10 @@ from gymenv import Gym
 from algos import A2C, PPO
 
 
+positions = [(-0.5, 0.5)]
+angles = [0, -90]
 
-env = Gym(disc_action=False)
+env = Gym(disc_action=False, positions=positions, angles=angles)
 
 agent = PPO(env=env, k_epochs=12, net_type='actor-critic',
             name='ppo', act_space='cont', min_batch_size=1024,
