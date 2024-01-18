@@ -34,7 +34,7 @@ class Gym(gym.Env):
         if self.disc_action:
             action = self.act_d(action)
         else:
-            action = (1/(1 + np.exp(-7*action[0])))*0.22, np.tanh(action[1])*0.5
+            action = np.clip((1/(1 + np.exp(-7*action[0])))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*action[1])*0.5, -0.5, 0.5)
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
@@ -60,7 +60,7 @@ class Gym(gym.Env):
         else:
             reward = (action[0])/(abs(action[1]) + 0.1) - 0.01
         
-        if (np.sum(state < 15) > 60):
+        if (np.sum(state < 7) > 150):
             reward = -100
             done = True
         
