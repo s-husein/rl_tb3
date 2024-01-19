@@ -60,7 +60,7 @@ class Gym(gym.Env):
         else:
             reward = (action[0])/(abs(action[1]) + 0.1) - 0.01
         
-        if (np.sum(state < 7) > 150):
+        if (np.sum(state < 11) > 80):
             reward = -100
             done = True
         

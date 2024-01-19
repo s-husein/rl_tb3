@@ -8,14 +8,11 @@ import torch.nn.functional as F
 from torch.distributions import Categorical, Normal
 import numpy as np
 from paths import MODELFOLDER, PLOTFOLDER
-from torchviz import make_dot
 from copy import deepcopy
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
 
-def get_graph(x):
-    make_dot(x).render('/home/user/fyp/src/rl_tb3/graph', format='png')
 
 
 class REINFORCE(Utils):
@@ -332,6 +329,25 @@ class PPO(A2C):
         value_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.5)
         self.crit_optim.step()    
+
+    def load_checkpoint(self, checkpath):
+        print('loading checkpoint..')
+        checkpoint = torch.load(checkpath)
+        if self.net_type == 'shared':
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optim.load_state_dict(checkpoint['optim_state_dict'])
+            self.model.train()
+            self.old_policy.load_state_dict(self.model.state_dict())
+        else:
+            self.actor.load_state_dict(checkpoint['actor_state_dict'])
+            self.critic.load_state_dict(checkpoint['critic_state_dict'])
+            self.act_optim.load_state_dict(checkpoint['act_optim_state_dict'])
+            self.crit_optim.load_state_dict(checkpoint['crit_optim_state_dict'])
+            self.actor.train()
+            self.critic.train()
+            self.old_policy.load_state_dict(self.actor.state_dict())
+        print('checkpoint loaded...')
+        return checkpoint['epoch']
 
 
     def train(self):
