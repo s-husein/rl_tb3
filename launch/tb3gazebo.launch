@@ -7,5 +7,5 @@
     </include>
     <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_pub"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_pub"/>
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model fyp_bot -x -0.5 -y -0.5 -z 0.0 -param robot_description" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model fyp_bot -x -0.5 -y 0.5 -z 0.0 -param robot_description" />
 </launch>
