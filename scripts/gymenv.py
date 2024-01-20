@@ -38,6 +38,7 @@ class Gym(gym.Env):
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
+        observation = self.add_noise(observation)
         # reward, done = self.get_reward_d(pub_action, observation)
         return (observation.flatten()/255.0).astype(np.float32), reward, done, False, {}
 
@@ -48,7 +49,7 @@ class Gym(gym.Env):
 
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
-        observation = self.get_observation()
+        observation = self.add_noise(self.get_observation())
         return (observation.flatten()/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
@@ -60,7 +61,7 @@ class Gym(gym.Env):
         else:
             reward = (action[0])/(abs(action[1]) + 0.1) - 0.01
         
-        if (np.sum(state < 11) > 80):
+        if (np.sum(state < 7) > 50):
             reward = -100
             done = True
         
@@ -82,11 +83,9 @@ class Gym(gym.Env):
         pub_act.linear.x, pub_act.angular.z = action[0], action[1]
         self.action_pub.publish(pub_act)
 
-    def add_noise(self, img, mean=0, std=25):
-
+    def add_noise(self, img, mean=0, std=7):
         noise = np.zeros(img.shape, np.uint8)
         cv.randn(noise, mean, std)
-
         noisy_img = np.clip(cv.add(img, noise), 0, 255)
         return noisy_img
 
@@ -96,7 +95,6 @@ class Gym(gym.Env):
         cv_img = cv_img/6.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        cv_img = self.add_noise(cv_img, mean=0, std=30)
         if not self.use_conv:
             cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
         return cv_img

@@ -6,6 +6,14 @@ from cv_bridge import CvBridge
 import cv2 as cv
 import numpy as np
 
+def add_noise(img, mean=0, std=7):
+
+        noise = np.zeros(img.shape, np.uint8)
+        cv.randn(noise, mean, std)
+
+        noisy_img = np.clip(cv.add(img, noise), 0, 255)
+        return noisy_img
+
 if __name__ == '__main__':
     rospy.init_node('img_ros', anonymous=True)
     # while True:
@@ -15,11 +23,8 @@ if __name__ == '__main__':
     cv_img = cv_img/6.0
     cv_img = np.nan_to_num(cv_img)
     cv_img = (cv_img*255).astype(np.uint8)
-    # cv_img = cv_img[:350, :]
-    # noise = np.zeros(cv_img.shape, dtype=np.uint8)
-    # noise = cv.randn(noise, 0, 10)
-    # cv_img = cv.add(cv_img, noise)
     cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
+    cv_img = add_noise(cv_img)
     cv.imshow('state', cv_img)
     cv.waitKey()
     print(cv_img.shape)
