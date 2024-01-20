@@ -321,7 +321,7 @@ class PPO(A2C):
         policy_loss = (clip_loss - (self.beta*entropy).mean()).to(device)
         self.act_optim.zero_grad()
         policy_loss.backward()
-        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.5)
+        torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.4)
         self.act_optim.step()
 
         value_loss = F.mse_loss(values, tar_values).to(device)

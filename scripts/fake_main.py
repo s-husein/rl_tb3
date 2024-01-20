@@ -13,7 +13,7 @@ env = gym.make('BipedalWalker-v3', render_mode = 'rgb_array')
 
 agent = PPO(env=env, k_epochs=10, net_type='actor-critic',
             name='ppo_bipdel', act_space='cont', min_batch_size=2048,
-            batch_size=128, lr=0.0003, hid_layer=[64, 64], std_min_clip=0.05, eps_clip=0.2)
+            batch_size=128, lr=0.0001, hid_layer=[64, 64], std_min_clip=0.05, eps_clip=0.2)
 
 epoch = agent.check_status_file()
 
