@@ -236,7 +236,7 @@ class A2C(Utils):
 class PPO(A2C):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 128], 
                 min_batch_size=2048, net_type='shared', lr=0.0003, act_space = 'disc',
-                 name='ppo', lam=0.8, std_min_clip = 0.07, beta=0.01, eps_clip=0.1):
+                 name='ppo', lam=0.95, std_min_clip = 0.07, beta=0.01, eps_clip=0.1):
         
 
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_type=net_type, lr=lr,

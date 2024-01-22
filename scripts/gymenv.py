@@ -38,8 +38,6 @@ class Gym(gym.Env):
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
-        observation = self.add_noise(observation)
-        # reward, done = self.get_reward_d(pub_action, observation)
         return (observation.flatten()/255.0).astype(np.float32), reward, done, False, {}
 
     def reset(self, seed=None):
@@ -49,7 +47,7 @@ class Gym(gym.Env):
 
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
-        observation = self.add_noise(self.get_observation())
+        observation = self.get_observation()
         return (observation.flatten()/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
@@ -83,12 +81,6 @@ class Gym(gym.Env):
         pub_act.linear.x, pub_act.angular.z = action[0], action[1]
         self.action_pub.publish(pub_act)
 
-    def add_noise(self, img, mean=0, std=7):
-        noise = np.zeros(img.shape, np.uint8)
-        cv.randn(noise, mean, std)
-        noisy_img = np.clip(cv.add(img, noise), 0, 255)
-        return noisy_img
-
     def get_observation(self):
         ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
@@ -113,9 +105,6 @@ class Gym(gym.Env):
         bot.pose.orientation.w = quat[3]
         rospy.wait_for_service('/gazebo/set_model_state', 3)
         rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)(bot)
-
-    def is_disc(self):
-        return self.disc_action
     
     def render(self):
         state = self.get_observation()
