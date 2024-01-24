@@ -62,22 +62,24 @@ def make_discretize_dnn(env: Env, hid_layers = [128, 128], act_fn='relu', bins =
 env = gym.make('LunarLanderContinuous-v2')
 
 
-state = torch.tensor(env.reset()[0])
-# states = []
+# state = torch.tensor(env.reset()[0])
+states = []
 
-# for i in range(10):
-#     states.append(torch.tensor(env.reset()[0]))
+for i in range(2):
+    states.append(torch.tensor(env.reset()[0]))
 
-# states = torch.stack(states)
+states = torch.stack(states)
 
-# print(f'states: {states}')
+print(f'states: {states}')
 
 
-actor = make_discretize_dnn(env, bins = 3, ordinal=True, act_fn='relu')
+actor = make_discretize_dnn(env, bins = 3, ordinal=False, act_fn='relu')
 
-print(actor)
+# print(states.dim())
 
-print(actor(state))
+print(actor(states))
+
+# print(actor(state))
 
 # print(actor(states))
 
