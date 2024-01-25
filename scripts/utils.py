@@ -130,11 +130,11 @@ class Utils:
 
     def check_rewards_file(self):
         if os.path.exists(self.reward_file):
-            reward = self.read_file(self.reward_file)
+            reward = float(self.read_file(self.reward_file))
             return reward
         else:
             self.creete_file(self.reward_file)
-            self.write_file(self.reward_file, '-1000')
+            self.write_file(self.reward_file, '-1000.0')
 
 
 

@@ -14,7 +14,7 @@ class Ordinal(nn.Module):
         iden = torch.tril(torch.ones_like(torch.eye(x.size()[-1])))[np.newaxis, :, :].repeat(x.size()[0], 1, 1)
         inv_iden = 1 - iden
         x = x[:, np.newaxis]
-        return torch.softmax(torch.sum(torch.log(iden*(x) + inv_iden*(1-x)), dim=2).squeeze(), dim=dims-1)
+        return torch.sum(torch.log(iden*(x) + inv_iden*(1-x)), dim=2).squeeze()
 
 
 
