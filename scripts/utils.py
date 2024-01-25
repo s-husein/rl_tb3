@@ -52,7 +52,7 @@ class Utils:
 
     def save_checkpoint(self, epoch, checkpath):
         file = open(STATUSFILE, 'w')
-        if self.net_type == 'shared':
+        if self.net_is_shared:
             checkpoint = {
                 'model_state_dict': self.model.state_dict(),
                 'optim_state_dict': self.optim.state_dict(),
@@ -74,7 +74,7 @@ class Utils:
     def load_checkpoint(self, checkpath):
         print('loading checkpoint..')
         checkpoint = torch.load(checkpath)
-        if self.net_type == 'shared':
+        if self.net_is_shared:
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optim.load_state_dict(checkpoint['optim_state_dict'])
             self.model.train()
@@ -95,7 +95,7 @@ class Utils:
     
     def load_model(self):
         print('loading model...')
-        if self.shared_net:
+        if self.net_is_shared:
             self.model.load_state_dict(torch.load(self.model_file))
             self.model.eval()
         else:
@@ -107,7 +107,7 @@ class Utils:
         print('model loaded...')
 
     def save_model(self):
-        if self.net_type != 'shared':
+        if not self.net_is_shared:
             model = {
                 'actor_state_dict': self.actor.state_dict(),
                 'critic_state_dict': self.critic.state_dict()
