@@ -33,44 +33,17 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
     if action_space == 'disc':
         out = env.action_space.n
     elif action_space == 'cont':
-        if bins is not None:
-            out = len(env.action_space.sample())*bins
-        else:
-            out = np.prod(2*len(env.action_space.sample()))
-
-    
+        out = np.prod(2*len(env.action_space.sample()))
+    elif action_space == 'discretize':
+        out = len(env.action_space.sample())*bins
+            
     net_types = {'actor': out, 'critic': 1, 'shared': out+1}
     
     layers.append(nn.Linear(hid_layers[-1], net_types[net_type]))
+    
     if ordinal:
         layers.append(Ordinal())
 
     return nn.Sequential(*layers)
-
-env = gym.make('LunarLanderContinuous-v2')
-
-
-# state = torch.tensor(env.reset()[0])
-states = []
-
-for i in range(10):
-    states.append(torch.tensor(env.reset()[0]))
-
-states = torch.stack(states)
-
-print(f'states: {states}')
-
-
-actor = make_dnn(env, bins = 7, ordinal=False, act_fn='relu', net_type='actor', action_space='cont')
-
-print(actor)
-
-# print(states.dim())
-
-# print(actor(states))
-
-# print(actor(state))
-
-# print(actor(states))
 
 
