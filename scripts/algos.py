@@ -80,7 +80,7 @@ class A2C(Utils):
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.reward_file = f'{REWARDFOLDER}/{name}_max_reward.txt'
         self.act_space = act_space
-        self.max_rewards = -1000
+        self.max_rewards = self.check_rewards_file()
         self.n_step_ret = n_step_return
         self.lam = lam
         self.gamma = gamma

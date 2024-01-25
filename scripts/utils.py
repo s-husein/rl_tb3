@@ -125,20 +125,18 @@ class Utils:
     def save_best_model(self, rewards):
         if rewards > self.max_rewards:
             self.max_rewards = rewards
+            self.write_file(self.reward_file, f'{rewards}')
             self.save_model()
 
-    def check_rewards(self):
+    def check_rewards_file(self):
         if os.path.exists(self.reward_file):
-            if self.read_file(self.reward_file) == '':
-                self.write_file(self.reward_file, '-1000')
-            else:
-                reward = self.read_file(self.reward_file)
-                return reward
+            reward = self.read_file(self.reward_file)
+            return reward
         else:
             self.creete_file(self.reward_file)
+            self.write_file(self.reward_file, '-1000')
 
 
-from paths import REWARDFOLDER
 
 
 
