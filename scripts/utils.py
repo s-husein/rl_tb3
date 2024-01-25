@@ -1,5 +1,6 @@
 from paths import CHECKPOINTFOLDER, STATUSFILE
 import torch
+import os
 
 class Utils:
     def __init__(self):
@@ -22,6 +23,10 @@ class Utils:
             mode = '+a'
         file = open(path, mode=mode)
         file.write(content)
+        file.close()
+
+    def creete_file(self, path):
+        file = open(path, 'w')
         file.close()
 
     def create_checkpoint_file(self, num):
@@ -121,3 +126,32 @@ class Utils:
         if rewards > self.max_rewards:
             self.max_rewards = rewards
             self.save_model()
+
+    def check_rewards(self):
+        if os.path.exists(self.reward_file):
+            if self.read_file(self.reward_file) == '':
+                self.write_file(self.reward_file, '-1000')
+            else:
+                reward = self.read_file(self.reward_file)
+                return reward
+        else:
+            self.creete_file(self.reward_file)
+
+
+from paths import REWARDFOLDER
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

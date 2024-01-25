@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Categorical, Normal
 import numpy as np
-from paths import MODELFOLDER, PLOTFOLDER
+from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER
 from copy import deepcopy
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -78,6 +78,7 @@ class A2C(Utils):
         self.net_is_shared = net_is_shared
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
+        self.reward_file = f'{REWARDFOLDER}/{name}_max_reward.txt'
         self.act_space = act_space
         self.max_rewards = -1000
         self.n_step_ret = n_step_return
