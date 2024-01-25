@@ -121,10 +121,8 @@ class A2C(Utils):
     def calc_values(self, states):
         if self.net_is_shared:
             values = self.model(states)[:, -1]
-
         else:
             values = torch.cat(torch.unbind(self.critic(states)))
-
         return values
     
     def calc_pd(self, states):
@@ -132,7 +130,6 @@ class A2C(Utils):
             logits = self.model(states)[:, :-1]
         else:
             logits = self.actor(states)
-
         return logits
     
     def adv_gae(self, values, next_values):
@@ -320,7 +317,7 @@ class PPO(A2C):
     def load_checkpoint(self, checkpath):
         print('loading checkpoint..')
         checkpoint = torch.load(checkpath)
-        if self.net_type == 'shared':
+        if self.net_is_shared:
             self.model.load_state_dict(checkpoint['model_state_dict'])
             self.optim.load_state_dict(checkpoint['optim_state_dict'])
             self.model.train()
