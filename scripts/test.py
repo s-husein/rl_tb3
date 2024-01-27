@@ -3,23 +3,49 @@ import numpy as np
 from torch.distributions import Categorical
 
 from dists import MultiCategorical
-x = torch.tensor([-2.2912,  0.7968, -1.6372, -0.6192, -0.0620,  0.5913,  0.6419,  0.2147,
-                  0.1110, -0.6814, -1.9464,  1.8108, -0.6366, -0.4581])
+import gym
+from nets import make_dnn
 
-x = torch.softmax(torch.sigmoid(x), dim=-1)
+env = gym.make('LunarLanderContinuous-v2')
+
+actor = make_dnn(env, action_space='discretize', net_type='actor', bins=7)
+
+states = []
+actions = []
+
+for i in range(5):
+    state = torch.tensor(env.reset()[0])
+    probs = torch.softmax(actor(state), dim=0)
+    dist = MultiCategorical(probs, out_dims=2)
+    action = dist.sample()
+    print(action)
+    states.append(state)
+    actions.append(action)
+
+print(torch.stack(states))
+print(actions)
+actions = torch.stack(actions)
+
+print(torch.chunk(actions, chunks = 2, dim=-1))
+
+
+# print(dist.sample())
+
+# x = torch.softmax(torch.sigmoid(x), dim=-1)
 
 
 
-dist = MultiCategorical(probs=x, out_dims = 2)
+# dist = MultiCategorical(probs=x, out_dims = 2)
 
-action = dist.sample()
+# action = dist.sample()
 
-print(action)
+# print(action)
 
-print(dist.log_prob(action))
+# print(dist.log_prob(action))
+# print(dist.entropy())
 # print(logits)
 
-# actions = np.linspace(-1, 1, len(logits[0]))
+# actions = np.linspace(-1, 18, len(logits[0]))
 # print(actions)
 
 # dists = [Categorical(probs = torch.softmax(logit, dim=0)) for logit in logits]
