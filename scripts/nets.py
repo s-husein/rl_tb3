@@ -11,8 +11,7 @@ class Ordinal(nn.Module):
     def forward(self, x):
         x = torch.sigmoid(x)
         x1, x2 = torch.chunk(x, self._action_dim, dim = -1)
-        # y = torch.cat((self.create_ordinal(x1), self.create_ordinal(x2)), dim=-1)
-        return x1, x2
+        return torch.softmax(self.create_ordinal(x1), dim=-1), torch.softmax(self.create_ordinal(x2), dim=-1)
     
     def create_ordinal(self, logits):
         dims = logits.dim() - 1 

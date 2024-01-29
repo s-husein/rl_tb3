@@ -2,10 +2,9 @@ import torch
 from torch.distributions import Distribution, Categorical
 
 class MultiCategorical(Distribution):
-    def __init__(self, probs, out_dims):
+    def __init__(self, probs):
         super().__init__(validate_args=False)
-        self.probs = torch.chunk(probs, chunks=out_dims, dim=-1)
-        self.dists = [Categorical(probs=prob) for prob in self.probs]
+        self.dists = [Categorical(probs=prob) for prob in probs]
 
     def log_prob(self, sample):
         return torch.stack([dist.log_prob(s) for s, dist in zip(torch.unbind(sample, dim=-1), self.dists)]).sum(dim=-1)

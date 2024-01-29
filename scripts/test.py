@@ -15,16 +15,14 @@ actions = []
 
 for i in range(2):
     state = torch.tensor(env.reset()[0])
-    print(actor(state))
-    states.append(state)
-
-    # probs = actor(state)
-    # probs = torch.softmax(actor(state), dim=0)
+    probs = actor(state)
+    print(probs)
     # dist = MultiCategorical(probs, out_dims=2)
     # action = dist.sample()
     # print(action)
     # print(torch.unbind(action, dim=-1))
     # print(dist.log_prob(action))
+    states.append(state)
 
 states_ = torch.stack(states)
 print(states_)
