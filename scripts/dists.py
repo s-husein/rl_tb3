@@ -8,7 +8,7 @@ class MultiCategorical(Distribution):
         self.dists = [Categorical(probs=prob) for prob in self.probs]
 
     def log_prob(self, sample):
-        return torch.sum(torch.FloatTensor([dist.log_prob(s) for s, dist in zip(sample, self.dists)]), dim=-1)
+        return torch.stack([dist.log_prob(s) for s, dist in zip(torch.unbind(sample, dim=-1), self.dists)]).sum(dim=-1)
             
     def sample(self):
         return torch.stack([dist.sample() for dist in self.dists])
