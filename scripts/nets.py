@@ -4,14 +4,18 @@ import numpy as np
 from gym import Env
 
 class Ordinal(nn.Module):
-    def __init__(self, action_dim):
+    def __init__(self, action_dim, ordinal):
         super().__init__()
         self._action_dim = action_dim
+        self._ordinal = ordinal
 
     def forward(self, x):
         x = torch.sigmoid(x)
-        x1, x2 = torch.chunk(x, self._action_dim, dim = -1)
-        return torch.softmax(self.create_ordinal(x1), dim=-1), torch.softmax(self.create_ordinal(x2), dim=-1)
+        probs_ = torch.chunk(x, self._action_dim, dim = -1)
+        if self._ordinal:
+            return [torch.softmax(self.create_ordinal(prob_), dim=-1) for prob_ in probs_]
+        else:
+            return probs_
     
     def create_ordinal(self, logits):
         dims = logits.dim() - 1 
@@ -21,8 +25,6 @@ class Ordinal(nn.Module):
         if dims > 0:
             logits = logits[:, np.newaxis]
         return torch.sum(torch.log(iden*(logits) + inv_iden*(1-logits)), dim=-1).squeeze()
-
-
 
 
 def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='shared', bins=None, act_fn='relu', ordinal=False):
@@ -49,8 +51,8 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
     
     layers.append(nn.Linear(hid_layers[-1], net_types[net_type]))
     
-    if ordinal:
-        layers.append(Ordinal(action_dim))
+    if action_space == 'discretize':
+        layers.append(Ordinal(action_dim, ordinal))
 
     return nn.Sequential(*layers)
 
