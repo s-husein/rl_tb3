@@ -9,7 +9,7 @@ from torch.distributions import Categorical, Normal
 import numpy as np
 from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER
 from copy import deepcopy
-
+from dists import MultiCategorical
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
 
@@ -182,6 +182,11 @@ class A2C(Utils):
             log_probs = dist.log_prob(actions).sum(dim=1)
             entropy = dist.entropy().sum(dim=1)
 
+        elif self.act_space == 'discretize':
+            dist = MultiCategorical(probs = logits)
+            log_probs = dist.log_prob(actions)
+            entropy = dist.entropy()
+
         return log_probs, entropy
     
     def shared_loss(self, states, actions, next_states):
@@ -235,11 +240,11 @@ class A2C(Utils):
 
 class PPO(A2C):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 128], 
-                 min_batch_size=2048, net_type='shared', actor_lr=0.0003, critic_lr = 0.001,
+                 min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
                  beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu'):
         
-        super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_type=net_type,
+        super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                                   actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, hid_layer=hid_layer,
                                   lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn)
         
@@ -267,8 +272,11 @@ class PPO(A2C):
                 dist = Categorical(logits=logits)
             elif self.act_space == 'cont':
                 mean, std = torch.chunk(logits, 2)
-                mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.3)
+                mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.7)
                 dist = Normal(mean, std)
+            elif self.act_space == 'discretize':
+                dist = MultiCategorical(probs=logits)
+            
             action = dist.sample()
         return action.to(device)
     

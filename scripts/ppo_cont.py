@@ -8,9 +8,9 @@ angles = [0, -90, 45, -45, 225, -225, 90, 180]
 env = Gym(disc_action=False, positions=positions, angles=angles)
 
 
-agent = PPO(env=env, k_epochs=12, net_type='actor-critic',
-            name='ppo_256_256', act_space='cont', min_batch_size=2048,
-            batch_size=256, lr=0.00007, hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.2)
+agent = PPO(env=env, k_epochs=10, net_type='actor-critic',
+            name='ppo_cont:256x256, batch_size: 64, lam: 0.95, gamma:0.99, net_type:sep', act_space='cont', min_batch_size=2048,
+            batch_size=64, lr=0.00007, hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3)
 
 epoch = agent.check_status_file()
 
