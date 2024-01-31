@@ -14,8 +14,9 @@ import math
 
 class Gym(gym.Env):
 
-    def __init__(self, positions = [(0, 0)], angles = [0], disc_action = True, use_conv = False):
-        self.disc_action = disc_action
+    def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', use_conv = False, bins=7):
+        self._action_space = action_space
+        self._bins = bins
         self.use_conv = use_conv
         self.POS = positions
         self.ANGLES = angles
@@ -25,16 +26,20 @@ class Gym(gym.Env):
         else:
             img_shape = (18, 32, 1)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
-        if disc_action:
+        if self._action_space:
             self.action_space = gym.spaces.Discrete(3)
         else: self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), shape = (2,), dtype=np.float32)
         self.action_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1, latch=True)
 
-    def step(self, action):
-        if self.disc_action:
-            action = self.act_d(action)
-        else:
-            action = np.clip((1/(1 + np.exp(-7*action[0])))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*action[1])*0.5, -0.5, 0.5)
+    def step(self, _action):
+        if self._action_space=='disc':
+            action = self.act_d(_action)
+        elif self._action_space == 'cont':
+            action = self.conv_action(_action[0], _action[1])
+            self.act_c(action)
+        elif self._action_space == 'discretize':
+            encode = np.linspace(-1, 1, self._bins)
+            action = self.conv_action(encode[_action[0]], encode(_action[1]))
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
@@ -80,6 +85,10 @@ class Gym(gym.Env):
         pub_act = Twist()
         pub_act.linear.x, pub_act.angular.z = action[0], action[1]
         self.action_pub.publish(pub_act)
+
+    def conv_action(self, lin_act, ang_act):
+            return np.clip((1/(1 + np.exp(-7*lin_act)))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*ang_act)*0.5, -0.5, 0.5)
+
 
     def get_observation(self):
         ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)

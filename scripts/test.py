@@ -8,9 +8,15 @@ from nets import make_dnn
 
 env = gym.make('LunarLanderContinuous-v2')
 
-actor = make_dnn(env, action_space='discretize', net_type='actor', bins=5, ordinal=False)
-
+actor = make_dnn(env, action_space='discretize', net_type='actor', bins=5, ordinal=True)
 
 state = torch.tensor(env.reset()[0])
 
-print(actor(state))
+probs = actor(state)
+print(probs)
+dist = MultiCategorical(probs=probs)
+
+action = dist.sample()
+print(action)
+
+print(dist.log_prob(action))

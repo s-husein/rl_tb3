@@ -10,12 +10,11 @@ class Ordinal(nn.Module):
         self._ordinal = ordinal
 
     def forward(self, x):
-        x = torch.sigmoid(x)
         probs_ = torch.chunk(x, self._action_dim, dim = -1)
         if self._ordinal:
-            return [torch.softmax(self.create_ordinal(prob_), dim=-1) for prob_ in probs_]
+            return [torch.softmax(self.create_ordinal(torch.sigmoid(prob_)), dim=-1) for prob_ in probs_]
         else:
-            return probs_
+            return [torch.softmax(prob_, dim=-1) for prob_ in probs_]
     
     def create_ordinal(self, logits):
         dims = logits.dim() - 1 
@@ -55,5 +54,3 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         layers.append(Ordinal(action_dim, ordinal))
 
     return nn.Sequential(*layers)
-
-
