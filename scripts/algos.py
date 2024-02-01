@@ -239,13 +239,13 @@ class A2C(Utils):
 
 
 class PPO(A2C):
-    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 128], 
+    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 128], bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
                  beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu'):
         
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
-                                  actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, hid_layer=hid_layer,
+                                  actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, bins=bins, hid_layer=hid_layer,
                                   lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn)
         
 
@@ -360,7 +360,7 @@ class PPO(A2C):
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
                     min_tar_values = torch.tensor([tar_values[ind] for ind in mini_batch]).to(device)
-                    if self.net_is_shared == 'shared':
+                    if self.net_is_shared:
                         self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)
                     else:
                         self.separate_loss(min_states, min_actions, min_advs, min_tar_values)                    

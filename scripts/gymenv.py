@@ -26,7 +26,7 @@ class Gym(gym.Env):
         else:
             img_shape = (18, 32, 1)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
-        if self._action_space:
+        if self._action_space == 'disc':
             self.action_space = gym.spaces.Discrete(3)
         else: self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), shape = (2,), dtype=np.float32)
         self.action_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1, latch=True)
@@ -39,7 +39,7 @@ class Gym(gym.Env):
             self.act_c(action)
         elif self._action_space == 'discretize':
             encode = np.linspace(-1, 1, self._bins)
-            action = self.conv_action(encode[_action[0]], encode(_action[1]))
+            action = self.conv_action(encode[_action[0]], encode[_action[1]])
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
@@ -59,7 +59,7 @@ class Gym(gym.Env):
         done = False
         reward = 0
 
-        if self.disc_action:
+        if self._action_space == 'disc':
             reward = 0.03
         else:
             reward = (action[0])/(abs(action[1]) + 0.1) - 0.01

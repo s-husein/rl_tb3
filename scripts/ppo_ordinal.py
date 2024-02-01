@@ -1,41 +1,48 @@
 from gymenv import Gym
 from algos import A2C, PPO
+import numpy as np
 
-
-positions = [(-0.5, 0.5), (8, 0.5), (8.5, -8.5), (-0.5, -8.5)]
-angles = [0, -90, 45, -45, 225, -225, 90, 180]
+positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, -3), (1, -4),
+             (1, -5), (1, -6), (1, -8), (1, -10), (2, -10), (2, -8), (2, -6), (3, -9), (3, -8),
+             (3, -7), (4, -8), (5, -7), (4, -10), (5, -10), (3, -4), (4, -4), (3, -5), (4, -5), (4, -6),
+             (5, -7), (6, -7), (7, -9), (7, -10), (7, -7)]
+angles = np.arange(0, 360, 15)
 max_steps = 10000
 
-env = Gym(disc_action=False, positions=positions, angles=angles)
+act_space ='discretize'
+
+env = Gym(action_space=act_space, positions=positions, angles=angles)
 
 
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             name='ppo_ordinal:256x256, batch_size: 64, lam: 0.95, gamma:0.99, net_type:sep',
-            act_space='discretize', min_batch_size=2048,
-            batch_size=64, actor_lr=0.0003, critic_lr=0.001, gamma= 0.99, lam=0.95,
-            hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3, act_fn='relu',
+            act_space=act_space, min_batch_size=100,
+            batch_size=16, actor_lr=0.0003, critic_lr=0.001, gamma= 0.99, lam=0.95,
+            hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3, act_fn='relu', bins=7,
             beta=0.05)
 
 epoch = agent.check_status_file()
 
 for ep in range(epoch, 50001):
+# for ep in range(1):
     except_flag = False
     done = False
-    try:
-        state = env.reset()[0]
-    except:
-        ep -= 1
-        continue
+    # try:
+    state = env.reset()[0]
+    # except:
+    #     ep -= 1
+    #     continue
     ep_reward = 0
     steps = 0
     while not done:
+    # for i in range(10):
         action = agent.act(state)
-        try:
-            next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
-            env.render()
-        except:
-            except_flag = True
-            break
+        # try:
+        next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
+            # env.render()
+        # except:
+            # except_flag = True
+            # break
         agent.buffer.add_experience(state, action, next_state, reward, done)
         state = next_state
         ep_reward += reward

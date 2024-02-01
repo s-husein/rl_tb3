@@ -10,13 +10,30 @@ env = gym.make('LunarLanderContinuous-v2')
 
 actor = make_dnn(env, action_space='discretize', net_type='actor', bins=5, ordinal=True)
 
-state = torch.tensor(env.reset()[0])
+states = []
+actions = []
 
-probs = actor(state)
-print(probs)
-dist = MultiCategorical(probs=probs)
+for i in range(5):
+    state = torch.tensor(env.reset()[0])
+    probs = actor(state)
+    dist = MultiCategorical(probs)
+    action = dist.sample()
+    print(action)
+    states.append(state)
+    actions.append(action)
 
-action = dist.sample()
-print(action)
+states_ = torch.stack(states)
+actions_= torch.stack(actions)
+print(actions_)
 
-print(dist.log_prob(action))
+print(actions_[3])
+
+print(actions_.unbind(dim=-1))
+
+probs_ = actor(states_)
+
+dist_ = MultiCategorical(probs_)
+
+log_prob = dist_.log_prob(actions_)
+
+print(log_prob)
