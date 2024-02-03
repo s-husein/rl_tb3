@@ -15,7 +15,7 @@ env = Gym(action_space=act_space, positions=positions, angles=angles)
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             name='ppo_cont:256x256, batch_size: 64, lam: 0.95, gamma:0.99, net_type:sep',
             act_space=act_space, min_batch_size=2048, batch_size=64, actor_lr=0.0003, critic_lr=0.0007,
-            lam=0.95, hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3)
+            lam=0.95, hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3, gamma=0.99, act_fn='relu')
 
 epoch = agent.check_status_file()
 
