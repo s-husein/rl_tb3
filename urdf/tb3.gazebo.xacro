@@ -202,7 +202,7 @@
         <cameraInfoTopicName>color/camera_info</cameraInfoTopicName>
         <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
         <pointCloudCutoff>0.01</pointCloudCutoff>
-        <pointCloudCutoffMax>100</pointCloudCutoffMax>
+        <pointCloudCutoffMax>300</pointCloudCutoffMax>
             <hackBaseline>0.07</hackBaseline>
             <distortionK1>0.0</distortionK1>
             <distortionK2>0.0</distortionK2>

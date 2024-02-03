@@ -17,7 +17,7 @@ env = Gym(action_space=act_space, positions=positions, angles=angles)
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             name='ppo_ordinal:256x256_batch_size:64_lam:0.95_gamma:0.99_net_type:sep',
             act_space=act_space, min_batch_size=2048,
-            batch_size=64, actor_lr=0.00007, critic_lr=0.0003, gamma= 0.99, lam=0.95,
+            batch_size=64, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.999, lam=0.95,
             hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3, act_fn='relu', bins=7,
             beta=0.05)
 
