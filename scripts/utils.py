@@ -25,7 +25,7 @@ class Utils:
         file.write(content)
         file.close()
 
-    def creete_file(self, path):
+    def create_file(self, path):
         file = open(path, 'w')
         file.close()
 
@@ -132,7 +132,7 @@ class Utils:
         if os.path.exists(self.reward_file):
             reward = float(self.read_file(self.reward_file))
         else:
-            self.creete_file(self.reward_file)
+            self.create_file(self.reward_file)
             reward = -1000.0
             self.write_file(self.reward_file, f'{reward}')
         return reward

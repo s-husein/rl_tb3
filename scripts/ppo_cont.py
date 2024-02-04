@@ -7,13 +7,13 @@ positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, 
              (3, -7), (4, -8), (5, -7), (4, -10), (5, -10), (3, -4), (4, -4), (3, -5), (4, -5), (4, -6),
              (5, -7), (6, -7), (7, -9), (7, -10), (7, -7)]
 angles = np.arange(0, 360, 15)
-max_steps = 10000
+max_steps = 1000
 act_space = 'cont'
 env = Gym(action_space=act_space, positions=positions, angles=angles)
 
 
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,
-            name='ppo_cont:256x256, batch_size: 64, lam: 0.95, gamma:0.99, net_type:sep',
+            name='ppo_cont:512x256, batch_size: 64, lam: 0.95, gamma:0.99, net_type:sep',
             act_space=act_space, min_batch_size=2048, batch_size=64, actor_lr=0.00003, critic_lr=0.00007,
             lam=0.95, hid_layer=[512, 256], std_min_clip=0.1, eps_clip=0.4, gamma=0.999, act_fn='relu')
 
