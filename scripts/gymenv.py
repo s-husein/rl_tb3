@@ -24,7 +24,7 @@ class Gym(gym.Env):
         if use_conv:
             img_shape = (410, 1080, 1)
         else:
-            img_shape = (18, 32, 1)
+            img_shape = (16, 64, 1)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
         if self._action_space == 'disc':
             self.action_space = gym.spaces.Discrete(3)
