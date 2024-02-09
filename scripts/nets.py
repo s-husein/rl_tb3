@@ -54,3 +54,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         layers.append(Ordinal(action_dim, ordinal))
 
     return nn.Sequential(*layers)
+
+
+
+

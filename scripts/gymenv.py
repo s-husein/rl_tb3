@@ -14,17 +14,15 @@ import math
 
 class Gym(gym.Env):
 
-    def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', use_conv = False, bins=7):
+    def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1):
         self._action_space = action_space
         self._bins = bins
-        self.use_conv = use_conv
         self.POS = positions
         self.ANGLES = angles
+        self.scal_fac = obs_scale_factor
         rospy.init_node("gym_node", anonymous=True)
-        if use_conv:
-            img_shape = (410, 1080, 1)
-        else:
-            img_shape = (16, 64, 1)
+        img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 1)
+        self.img_area = np.prod(img_shape)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
         if self._action_space == 'disc':
             self.action_space = gym.spaces.Discrete(3)
@@ -62,9 +60,9 @@ class Gym(gym.Env):
         if self._action_space == 'disc':
             reward = 0.03
         else:
-            reward = (action[0])/(abs(action[1]) + 0.1) - 0.01
+            reward = (action[0])/(abs(action[1]) + 0.1) - 0.05
         
-        if (np.sum(state < 7) > 50):
+        if (np.sum(state < 8) > 0.05*self.img_area):
             reward = -100
             done = True
         
@@ -96,8 +94,8 @@ class Gym(gym.Env):
         cv_img = cv_img/7.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        if not self.use_conv:
-            cv_img = cv.resize(cv_img, (0, 0), fx = 0.1, fy = 0.1)
+        if self.scal_fac < 1:
+            cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)
         return cv_img
 
 
