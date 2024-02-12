@@ -41,6 +41,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
             if max_pool is not None:
                 layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
             in_chann = out_chann
+        layers.append(nn.Flatten())
 
     layers.append(nn.Linear(inp, hid_layers[0]))
     layers.append(activation_fun[act_fn])
