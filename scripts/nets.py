@@ -26,10 +26,22 @@ class Ordinal(nn.Module):
         return torch.sum(torch.log(iden*(logits) + inv_iden*(1-logits)), dim=-1).squeeze()
 
 
-def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='shared', bins=None, act_fn='relu', ordinal=False):
+def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='shared', bins=None,
+             act_fn='relu', ordinal=False, conv_layers=None, max_pool = None):
+    
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh()}
     inp = np.prod(env.observation_space.shape)
+    if conv_layers is not None:
+        in_chann = 1
+        for conv in conv_layers:
+            out_chann, filter_size, stride = conv
+            layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
+            layers.append(nn.ReLU())
+            if max_pool is not None:
+                layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
+            in_chann = out_chann
+
     layers.append(nn.Linear(inp, hid_layers[0]))
     layers.append(activation_fun[act_fn])
     action_dim = len(env.action_space.sample())
@@ -55,6 +67,9 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
 
     return nn.Sequential(*layers)
 
+
+
+[[16, 5, 1], []]
 
 
 
