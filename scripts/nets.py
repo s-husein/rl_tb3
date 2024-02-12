@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 from gym import Env
+from gymenv import Gym
 
 class Ordinal(nn.Module):
     def __init__(self, action_dim, ordinal):
@@ -31,9 +32,10 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
     
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh()}
-    inp = np.prod(env.observation_space.shape)
+    inp_shape = env.observation_space.shape
     if conv_layers is not None:
         in_chann = 1
+        inp_h, inp_w = inp_shape[0], inp_shape[1]
         for conv in conv_layers:
             out_chann, filter_size, stride = conv
             layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
@@ -41,11 +43,23 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
             if max_pool is not None:
                 layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
             in_chann = out_chann
-        layers.append(nn.Flatten())
+            out_h = (inp_h - filter_size)//stride + 1
+            out_w = (inp_w - filter_size)//stride + 1
 
-    layers.append(nn.Linear(inp, hid_layers[0]))
-    layers.append(activation_fun[act_fn])
-    action_dim = len(env.action_space.sample())
+            inp_h = out_h
+            inp_w = out_w
+
+        layers.append(nn.Flatten())
+        layers.append(nn.Linear(inp_h*inp_w*in_chann, hid_layers[0]))
+
+    else:
+        inp = np.prod(inp_shape)
+        layers.append(nn.Linear(inp, hid_layers[0]))
+        layers.append(activation_fun[act_fn])
+    try:
+        action_dim = len(env.action_space.sample())
+    except:
+        pass
 
     dim_pairs = zip(hid_layers[:-1], hid_layers[1:])
     for in_dim, out_dim in list(dim_pairs):
@@ -68,9 +82,16 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
 
     return nn.Sequential(*layers)
 
+action_space = 'disc'
+env = Gym(obs_scale_factor=0.1, action_space=action_space)
 
+conv_layers = [[16, 5, 1],
+               [32, 5, 1]]
 
-[[16, 5, 1], []]
+actor = make_dnn(env, net_type='actor', action_space=action_space, conv_layers=conv_layers)
 
+state = torch.tensor(env.reset()[0])
 
+print(actor)
+print(actor(state))
 
