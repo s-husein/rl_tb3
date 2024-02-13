@@ -40,17 +40,25 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
             out_chann, filter_size, stride = conv
             layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
             layers.append(nn.ReLU())
-            if max_pool is not None:
-                layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
-            in_chann = out_chann
+
             out_h = (inp_h - filter_size)//stride + 1
             out_w = (inp_w - filter_size)//stride + 1
-
             inp_h = out_h
             inp_w = out_w
 
+            if max_pool is not None:
+                layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
+                out_h = (inp_h - max_pool[0])//max_pool[1] + 1
+                out_w = (inp_w - max_pool[0])//max_pool[1] + 1
+                inp_h = out_h
+                inp_w = out_w
+
+            in_chann = out_chann
+            
+
         layers.append(nn.Flatten())
         layers.append(nn.Linear(inp_h*inp_w*in_chann, hid_layers[0]))
+        layers.append(activation_fun[act_fn])
 
     else:
         inp = np.prod(inp_shape)
@@ -81,17 +89,4 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         layers.append(Ordinal(action_dim, ordinal))
 
     return nn.Sequential(*layers)
-
-action_space = 'disc'
-env = Gym(obs_scale_factor=0.1, action_space=action_space)
-
-conv_layers = [[16, 5, 1],
-               [32, 5, 1]]
-
-actor = make_dnn(env, net_type='actor', action_space=action_space, conv_layers=conv_layers)
-
-state = torch.tensor(env.reset()[0])
-
-print(actor)
-print(actor(state))
 

@@ -70,7 +70,7 @@ class REINFORCE(Utils):
 class A2C(Utils):
     def __init__(self, env: Env, name='a2c', min_batch_size=128, hid_layer = [128, 128],
                  net_is_shared = True, actor_lr = 0.00003, critic_lr = 0.0003, act_space = 'disc',
-                 n_step_return = None, lam = None, gamma=0.99, std_min_clip = 0.08,
+                 n_step_return = None, lam = None, gamma=0.99, std_min_clip = 0.08, conv_layers = None, max_pool = None,
                  beta = 0.03, bins = None, ordinal=False, act_fun = 'relu'):
         
         self.buffer = Rollout()
@@ -88,15 +88,15 @@ class A2C(Utils):
         self.beta = beta
         if self.net_is_shared:
             self.model = make_dnn(env, hid_layers=hid_layer, net_type='shared', action_space=act_space,
-                                  bins=bins, ordinal=ordinal, act_fn=act_fun).to(device)
+                                  bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
             self.optim = Adam(self.model.parameters(), lr = actor_lr, eps = 1e-8)
             self.model.train()
             print(self.model)
         else:
             self.actor = make_dnn(env, net_type='actor', hid_layers=hid_layer, action_space=act_space,
-                                  bins=bins, ordinal=ordinal, act_fn=act_fun).to(device)
+                                  bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
             self.critic = make_dnn(env, net_type='critic', hid_layers=hid_layer, action_space=act_space,
-                                   bins=bins, ordinal=ordinal, act_fn=act_fun).to(device)
+                                   bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
             self.act_optim = Adam(self.actor.parameters(), lr = actor_lr, eps = 1e-5)
             self.crit_optim = Adam(self.critic.parameters(), lr = critic_lr, eps = 1e-5)
             self.actor.train()
@@ -239,14 +239,15 @@ class A2C(Utils):
 
 
 class PPO(A2C):
-    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 128], bins=None,
+    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
                  beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu'):
         
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                                   actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, bins=bins, hid_layer=hid_layer,
-                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn)
+                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn,
+                                  conv_layers = conv_layers, max_pool=max_pool)
         
 
         self.batch_size = batch_size
