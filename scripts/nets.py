@@ -55,7 +55,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
                 inp_w = out_w
             in_chann = out_chann
 
-        layers.append(nn.Flatten())
+        layers.append(nn.Flatten(0))
         layers.append(nn.Linear(inp_h*inp_w*in_chann, hid_layers[0]))
         layers.append(activation_fun[act_fn])
 
