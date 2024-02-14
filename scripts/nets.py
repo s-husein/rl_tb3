@@ -33,6 +33,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh()}
     inp_shape = env.observation_space.shape
+
     if conv_layers is not None:
         in_chann = 1
         inp_h, inp_w = inp_shape[0], inp_shape[1]
@@ -52,9 +53,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
                 out_w = (inp_w - max_pool[0])//max_pool[1] + 1
                 inp_h = out_h
                 inp_w = out_w
-
             in_chann = out_chann
-            
 
         layers.append(nn.Flatten())
         layers.append(nn.Linear(inp_h*inp_w*in_chann, hid_layers[0]))
@@ -64,15 +63,17 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         inp = np.prod(inp_shape)
         layers.append(nn.Linear(inp, hid_layers[0]))
         layers.append(activation_fun[act_fn])
+
     try:
         action_dim = len(env.action_space.sample())
     except:
         pass
-
-    dim_pairs = zip(hid_layers[:-1], hid_layers[1:])
-    for in_dim, out_dim in list(dim_pairs):
-        layers.append(nn.Linear(in_dim, out_dim))
-        layers.append(activation_fun[act_fn])
+    
+    if len(hid_layers) > 1:
+        dim_pairs = zip(hid_layers[:-1], hid_layers[1:])
+        for in_dim, out_dim in list(dim_pairs):
+            layers.append(nn.Linear(in_dim, out_dim))
+            layers.append(activation_fun[act_fn])
 
     if action_space == 'disc':
         out = env.action_space.n
@@ -80,13 +81,27 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         out = 2*action_dim
     elif action_space == 'discretize':
         out = action_dim*bins
-            
+                
     net_types = {'actor': out, 'critic': 1, 'shared': out+1}
-    
-    layers.append(nn.Linear(hid_layers[-1], net_types[net_type]))
-    
-    if action_space == 'discretize' and net_type == 'actor':
-        layers.append(Ordinal(action_dim, ordinal))
+    if net_type in net_types.keys():
+        
+        layers.append(nn.Linear(hid_layers[-1], net_types[net_type]))
+        
+        if action_space == 'discretize' and net_type == 'actor':
+            layers.append(Ordinal(action_dim, ordinal))
 
     return nn.Sequential(*layers)
 
+
+
+env = Gym(obs_scale_factor=0.1)
+
+conv_l= [[16, 3, 1],
+         [32, 3, 1],
+         [64, 3, 1]]
+
+actor = make_dnn(env, hid_layers = [128], conv_layers=conv_l, max_pool=[2,2], net_type='rnd').to('cuda')
+print(actor)
+state = torch.tensor(env.reset()[0]).to('cuda')
+
+print(actor(state))

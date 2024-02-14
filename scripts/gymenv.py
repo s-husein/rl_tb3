@@ -51,7 +51,7 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
         observation = np.expand_dims(self.get_observation(), 0)
-        return np.expand_dims((observation/255.0).astype(np.float32), 0), {}
+        return (observation/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
         done = False
@@ -94,8 +94,7 @@ class Gym(gym.Env):
         cv_img = cv_img/7.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        if self.scal_fac < 1:
-            cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)
+        cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)
         return cv_img
 
 
