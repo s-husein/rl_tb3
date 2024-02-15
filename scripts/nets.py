@@ -91,22 +91,3 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
             layers.append(Ordinal(action_dim, ordinal))
 
     return nn.Sequential(*layers)
-
-
-
-env = Gym(obs_scale_factor=0.1)
-
-conv_l= [[16, 3, 1],
-         [32, 3, 1],
-         [64, 3, 1]]
-
-actor = make_dnn(env, hid_layers = [3], conv_layers=conv_l, max_pool=[2,2], net_type='rnd', act_fn='elu').to('cuda')
-print(actor)
-states = []
-for i in range(5):
-    state = torch.tensor(env.reset()[0]).to('cuda')
-    states.append(state)
-
-states_ = torch.stack(states)
-
-print(actor(state))

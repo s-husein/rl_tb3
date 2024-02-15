@@ -264,10 +264,9 @@ class PPO(A2C):
     def act(self, state):
         state = torch.from_numpy(state).to(device)
         with torch.no_grad():
+            logits = self.old_policy(state).squeeze()
             if self.net_is_shared:
-                logits = self.old_policy(state)[:-1]
-            else:
-                logits = self.old_policy(state)
+                logits = logits[:-1]
 
             if self.act_space == 'disc':
                 dist = Categorical(logits=logits)
@@ -389,6 +388,7 @@ class RND_PPO(PPO):
         for param in self.targ_net.parameters():
             param.requires_grad = False
         self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        self.pred_net_optim = Adam(self.pred_net.parameter(), lr = 0.0001)
 
         self.critic_int = make_dnn(env, hid_layers=hid_layer, action_space=act_space, net_type='critic',
                                    conv_layers=conv_layers, max_pool=max_pool)
@@ -398,9 +398,11 @@ class RND_PPO(PPO):
     def calc_intr_rewards(self, next_state_):
         next_state = torch.tensor(next_state_).to(device)
         next_state = ((next_state - next_state.mean())/(next_state.std() + 1e-8)).clip(-5, 5)
-        prediction = self.pred_net(next_state)
         with torch.no_grad():
+            prediction = self.pred_net(next_state)
             target = self.targ_net(next_state)
+
+        intr_rewards = F.mse_loss()
         
 
         

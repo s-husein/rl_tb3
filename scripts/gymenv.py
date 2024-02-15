@@ -14,12 +14,13 @@ import math
 
 class Gym(gym.Env):
 
-    def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1):
+    def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1, conv_layers=None):
         self._action_space = action_space
         self._bins = bins
         self.POS = positions
         self.ANGLES = angles
         self.scal_fac = obs_scale_factor
+        self.conv_layers = conv_layers
         rospy.init_node("gym_node", anonymous=True)
         img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 1)
         self.img_area = np.prod(img_shape)
@@ -39,7 +40,7 @@ class Gym(gym.Env):
             encode = np.linspace(-1, 1, self._bins)
             action = self.conv_action(encode[_action[0]], encode[_action[1]])
             self.act_c(action)
-        observation = np.expand_dims(self.get_observation(), 0)
+        observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
         return (observation/255.0).astype(np.float32), reward, done, False, {}
 
@@ -50,7 +51,7 @@ class Gym(gym.Env):
 
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
-        observation = np.expand_dims(self.get_observation(), 0)
+        observation = self.get_observation()
         return (observation/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
@@ -95,6 +96,8 @@ class Gym(gym.Env):
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)
+        if self.conv_layers is not None:
+            cv_img = np.expand_dims(cv_img, 0)
         return cv_img
 
 
@@ -114,7 +117,5 @@ class Gym(gym.Env):
     
     def render(self):
         state = self.get_observation()
-        cv.imshow('state', state)
+        cv.imshow('state', state.squeeze())
         cv.waitKey(1)
-    # def close(self):
-    #     os.system('bash /home/user/env_close.sh')
