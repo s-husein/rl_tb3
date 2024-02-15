@@ -31,7 +31,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
              act_fn='relu', ordinal=False, conv_layers=None, max_pool = None):
     
     layers = []
-    activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh()}
+    activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh(), 'elu': nn.ELU()}
     inp_shape = env.observation_space.shape
 
     if conv_layers is not None:
@@ -40,7 +40,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         for conv in conv_layers:
             out_chann, filter_size, stride = conv
             layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
-            layers.append(nn.ReLU())
+            layers.append(nn.ELU())
 
             out_h = (inp_h - filter_size)//stride + 1
             out_w = (inp_w - filter_size)//stride + 1
@@ -55,7 +55,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
                 inp_w = out_w
             in_chann = out_chann
 
-        layers.append(nn.Flatten(0))
+        layers.append(nn.Flatten())
         layers.append(nn.Linear(inp_h*inp_w*in_chann, hid_layers[0]))
         layers.append(activation_fun[act_fn])
 
@@ -100,8 +100,13 @@ conv_l= [[16, 3, 1],
          [32, 3, 1],
          [64, 3, 1]]
 
-actor = make_dnn(env, hid_layers = [128], conv_layers=conv_l, max_pool=[2,2], net_type='rnd').to('cuda')
+actor = make_dnn(env, hid_layers = [3], conv_layers=conv_l, max_pool=[2,2], net_type='rnd', act_fn='elu').to('cuda')
 print(actor)
-state = torch.tensor(env.reset()[0]).to('cuda')
+states = []
+for i in range(5):
+    state = torch.tensor(env.reset()[0]).to('cuda')
+    states.append(state)
+
+states_ = torch.stack(states)
 
 print(actor(state))
