@@ -374,8 +374,35 @@ class PPO(A2C):
         else:
             pass
 
-class PPORND(A2C):
-    def __init__(self):
+class RND_PPO(PPO):
+    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
+                 min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
+                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
+                 beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu'):
+        
+        super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
+                                      max_pool=max_pool, bins=bins, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
+                                      actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, name=name, lam=lam,
+                                      std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e, act_fn=act_fn)
+        
+        self.targ_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        for param in self.targ_net.parameters():
+            param.requires_grad = False
+        self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+
+        self.critic_int = make_dnn(env, hid_layers=hid_layer, action_space=act_space, net_type='critic',
+                                   conv_layers=conv_layers, max_pool=max_pool)
+        self.critic_int_optim = Adam(self.critic_int.parameters(), lr = critic_lr, eps = 1e-5)
+
+
+    def calc_intr_rewards(self, next_state_):
+        next_state = torch.tensor(next_state_).to(device)
+        next_state = ((next_state - next_state.mean())/(next_state.std() + 1e-8)).clip(-5, 5)
+        prediction = self.pred_net(next_state)
+        with torch.no_grad():
+            target = self.targ_net(next_state)
+        
+
         
 
 
