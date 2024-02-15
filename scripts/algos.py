@@ -374,7 +374,9 @@ class PPO(A2C):
         else:
             pass
 
-    
+class PPORND(A2C):
+    def __init__(self):
+        
 
 
 
