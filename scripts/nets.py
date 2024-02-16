@@ -82,7 +82,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
     elif action_space == 'discretize':
         out = action_dim*bins
                 
-    net_types = {'actor': out, 'critic': 1, 'shared': out+1}
+    net_types = {'actor': out, 'critic': 1, 'shared': out+1, 'two_head': 2}
     if net_type in net_types.keys():
         
         layers.append(nn.Linear(hid_layers[-1], net_types[net_type]))
