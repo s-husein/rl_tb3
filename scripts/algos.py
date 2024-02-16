@@ -71,7 +71,7 @@ class A2C(Utils):
     def __init__(self, env: Env, name='a2c', min_batch_size=128, hid_layer = [128, 128],
                  net_is_shared = True, actor_lr = 0.00003, critic_lr = 0.0003, act_space = 'disc',
                  n_step_return = None, lam = None, gamma=0.99, std_min_clip = 0.08, conv_layers = None, max_pool = None,
-                 beta = 0.03, bins = None, ordinal=False, act_fun = 'relu'):
+                 beta = 0.03, bins = None, ordinal=False, act_fun = 'relu', policy_net = 'actor', value_net = 'critic'):
         
         self.buffer = Rollout()
         self.min_batch_size = min_batch_size
@@ -93,9 +93,9 @@ class A2C(Utils):
             self.model.train()
             print(self.model)
         else:
-            self.actor = make_dnn(env, net_type='actor', hid_layers=hid_layer, action_space=act_space,
+            self.actor = make_dnn(env, net_type=policy_net, hid_layers=hid_layer, action_space=act_space,
                                   bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
-            self.critic = make_dnn(env, net_type='critic', hid_layers=hid_layer, action_space=act_space,
+            self.critic = make_dnn(env, net_type=value_net, hid_layers=hid_layer, action_space=act_space,
                                    bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
             self.act_optim = Adam(self.actor.parameters(), lr = actor_lr, eps = 1e-5)
             self.crit_optim = Adam(self.critic.parameters(), lr = critic_lr, eps = 1e-5)
@@ -242,12 +242,12 @@ class PPO(A2C):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
-                 beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu'):
+                 beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu', policy_net = 'actor', value_net = 'critic'):
         
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                                   actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, bins=bins, hid_layer=hid_layer,
                                   lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn,
-                                  conv_layers = conv_layers, max_pool=max_pool)
+                                  conv_layers = conv_layers, max_pool=max_pool,policy_net=policy_net, value_net=value_net)
         
 
         self.batch_size = batch_size
@@ -381,10 +381,11 @@ class RND_PPO(PPO):
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
                  beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu'):
         
-        ppo_agent = PPO(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
-                                      max_pool=max_pool, bins=bins, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
-                                      actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, name=name, lam=lam,
-                                      std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e, act_fn=act_fn)
+        super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
+                        max_pool=max_pool, bins=bins, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
+                        actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, name=name, lam=lam,
+                        std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e,
+                        act_fn=act_fn, value_net='two_head', )
         
         self.targ_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         for param in self.targ_net.parameters():
@@ -393,17 +394,39 @@ class RND_PPO(PPO):
         self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = 0.0001)
 
-
-    def calc_intr_rewards(self, next_state_):
-        next_state = torch.tensor(next_state_).to(device)
-        next_state = ((next_state - next_state.mean())/(next_state.std() + 1e-8)).clip(-5, 5)
-        with torch.no_grad():
-            prediction = self.pred_net(next_state)
-            target = self.targ_net(next_state)
-
-        intr_rewards = F.mse_loss()
+    def act(self, state):
+        return super().act(state)
         
-
+    def train(self):
+        if self.buffer.size > self.min_batch_size:
+            print('training...')
+            states = torch.stack(self.buffer.traj['states']).to(device)
+            actions = torch.stack(self.buffer.traj['actions']).to(device)
+            next_states = torch.stack(self.buffer.traj['next_states']).to(device)
+            with torch.no_grad():
+                values = self.calc_values(states)
+                next_values = self.calc_values(next_states)
+            advs, tar_values = self.calc_adv(values, next_values)
+            for _ in range(self.k_epochs):
+                mini_batches = self.buffer.get_mini_batches(self.batch_size)
+                for mini_batch in mini_batches:                    
+                    min_states = min_actions = min_advs = min_tar_values = torch.zeros(len(mini_batch)).to(device)
+                    min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
+                    min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
+                    min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
+                    min_tar_values = torch.tensor([tar_values[ind] for ind in mini_batch]).to(device)
+                    if self.net_is_shared:
+                        self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)
+                    else:
+                        self.separate_loss(min_states, min_actions, min_advs, min_tar_values)                    
+            self.buffer.reset()
+            print('trained...')
+            if self.net_is_shared:
+                self.old_policy.load_state_dict(self.model.state_dict())
+            else:
+                self.old_policy.load_state_dict(self.actor.state_dict())
+        else:
+            pass
         
 
 
