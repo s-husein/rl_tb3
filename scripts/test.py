@@ -14,40 +14,24 @@ max_pool = [2, 2]
 rms = RunningMeanStd()
 
 env = Gym(conv_layers=conv_l, obs_scale_factor=0.1, positions=[(4, -5), (4, -6)])
-pred = make_dnn(env, hid_layers=hid_l, net_type='rnd', conv_layers=conv_l, max_pool=max_pool, act_fn='elu').to('cuda')
+critic = make_dnn(env, hid_layers=hid_l, net_type='two_head', conv_layers=conv_l, max_pool=max_pool, act_fn='elu').to('cuda')
 
-
-targ = make_dnn(env, hid_layers=hid_l, net_type='rnd', conv_layers=conv_l, max_pool=max_pool, act_fn='elu').to('cuda')
-for param in targ.parameters():
-    param.requires_grad = False
-
-# print(pred)
-
+print(critic)
 states = torch.stack([torch.tensor(env.reset()[0]).to('cuda') for i in range(5)])
 
-print(states)
-
-rms = RunningMeanStd()
-
-rms.update(states)
 
 
-print(rms.mean, rms.std, rms.count)
+print(states.shape)
 
-prediction = pred(states)
-target = targ(states)
+values = critic(states).transpose(0, 1)
 
-mse_loss = F.mse_loss(prediction, target, reduction='none').mean(dim=-1)
+print(values)
+print(values[0])
+print(values[1])
 
-diff = ((target - prediction)**2)
+# values = torch.unbind(values, dim=-1)
 
-reward = diff.mean(dim=-1).detach()
-
-
-print(f'reward: {reward}')
-print(f'mse_loss: {mse_loss}' )
-# rms.update(reward)
-
-
+# print(values[0])
+# print(values[1])
 # print(reward/rms.std)
 

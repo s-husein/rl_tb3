@@ -124,7 +124,7 @@ class A2C(Utils):
         if self.net_is_shared:
             values = self.model(states)[:, -1]
         else:
-            values = torch.cat(torch.unbind(self.critic(states)))
+            values = self.critic(states).transpose(0, 1)
         return values
     
     def calc_pd(self, states):
@@ -301,14 +301,14 @@ class PPO(A2C):
         self.optim.step()
 
     
-    def separate_loss(self, states, actions, advs, tar_values):
+    def separate_loss(self, states, actions, advs, tar_values, intr_tar_values=None):
         logits = self.calc_pd(states)
-        values = self.calc_values(states)
         log_probs, entropy = self.log_probs(logits, actions)
         with torch.no_grad():
             old_logits = self.old_policy(states)
             old_log_probs = self.log_probs(old_logits, actions)[0]
         assert old_log_probs.shape == log_probs.shape
+
         ratios = torch.exp(log_probs - old_log_probs)
         surr1 = ratios * advs
         surr2 = torch.clamp(ratios, 1.0 - self.eps_clip, 1.0 + self.eps_clip) * advs
@@ -318,6 +318,10 @@ class PPO(A2C):
         policy_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.4)
         self.act_optim.step()
+
+        values = self.calc_values(states)
+        if intr_tar_values is not None:
+            pass
         value_loss = F.mse_loss(values, tar_values).to(device)
         self.crit_optim.zero_grad()
         value_loss.backward()
@@ -380,7 +384,7 @@ class RND_PPO(PPO):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
-                 beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu'):
+                 beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu', ext_coef=2, intr_coef=1):
         
         super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
                         max_pool=max_pool, bins=bins, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
@@ -389,6 +393,8 @@ class RND_PPO(PPO):
                         act_fn=act_fn, value_net='two_head', )
         
         self.gamma_i = gamma_i
+        self.ext_coef=ext_coef
+        self.intr_coef = intr_coef
         self.reward_rms = RunningMeanStd()
         self.obs_rms = RunningMeanStd()
         
@@ -430,31 +436,35 @@ class RND_PPO(PPO):
             targ_feat = self.targ_net(norm_nxt_states)
             pred_feat = self.pred_net(norm_nxt_states)
             error = (targ_feat - pred_feat).pow(2)
-
             intrin_rew = error.mean(dim=-1)
-
             self.reward_rms.update(intrin_rew)
-
             intrin_rew = intrin_rew/self.reward_rms.std
 
             with torch.no_grad():
                 values = self.calc_values(states)
                 next_values = self.calc_values(next_states) 
-            int_advs, intr_tar_values = self.calc_intr_adv(intrin_rew)
-            ex_advs, ex_tar_values = self.calc_adv(values, next_values)
+            ext_val, intr_val = values[0], values[1]
+            ext_nxt_val, intr_nxt_val = next_values[0], next_values[1]
+
+            intr_advs, intr_tar_values = self.calc_intr_adv(intrin_rew, intr_val, intr_nxt_val)
+            ext_advs, ex_tar_values = self.calc_adv(ext_val, ext_nxt_val)
+
+            advs = self.ext_coef*ext_advs + self.intr_coef*intr_advs
+
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
                 for mini_batch in mini_batches:                    
-                    min_states = min_actions = min_advs = min_tar_values = torch.zeros(len(mini_batch)).to(device)
-                    
+                    min_states = min_actions = min_advs = min_ex_tar_values, min_intr_tar_values = torch.zeros(len(mini_batch)).to(device)
+
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
                     min_ex_tar_values = torch.tensor([ex_tar_values[ind] for ind in mini_batch]).to(device)
+                    min_intr_tar_values = torch.tensor([intr_tar_values[ind] for ind in mini_batch]).to(device)
                     if self.net_is_shared:
-                        self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)
+                        self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_ex_tar_values)
                     else:
-                        self.separate_loss(min_states, min_actions, min_advs, min_tar_values)                    
+                        self.separate_loss(min_states, min_actions, min_advs, min_ex_tar_values)
             self.buffer.reset()
             print('trained...')
             if self.net_is_shared:
