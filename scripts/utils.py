@@ -140,19 +140,24 @@ class Utils:
 
 
 class RunningMeanStd:
-    def __init__(self, epsilon=1e-5):
+    def __init__(self, epsilon=1e-3, shape = ()):
         self.eps = epsilon
+        self.shape = shape
         self.reset()
 
     def reset(self):
-        self.mean = np.zeros(shape=())
-        self.var = np.ones(shape=())
+        self.mean = torch.zeros(size= self.shape)
+        self.var = torch.ones(size=self.shape)
+        self.std = torch.sqrt(self.var) + self.eps
         self.count = self.eps
 
-    def update(self, x):
-        batch_mean = np.mean(x)
-        batch_var = np.var(x)
-        batch_count = len(x)
+    def update(self, x: torch.Tensor):
+        x = x.squeeze()
+        batch_mean = torch.mean(x).to('cuda')
+        print(batch_mean)
+        batch_var = torch.var(x).to('cuda')
+        print(batch_var)
+        batch_count = x.shape[0]
 
         new_count = batch_count + self.count
         delta = batch_mean - self.mean
@@ -160,10 +165,12 @@ class RunningMeanStd:
         ma = self.var*self.count
         mb = batch_var*batch_count
 
-        m2 = ma+mb + np.square(delta) * self.count * batch_count / new_count
+        m2 = ma+mb + torch.square(delta) * self.count * batch_count / new_count
 
         new_var = m2/new_count
 
         self.mean = new_mean
         self.var = new_var
         self.count = new_count
+        self.std = torch.sqrt(self.var) + self.eps
+    

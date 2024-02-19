@@ -10,6 +10,7 @@ import numpy as np
 from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER
 from copy import deepcopy
 from dists import MultiCategorical
+from utils import RunningMeanStd
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
 
@@ -387,6 +388,10 @@ class RND_PPO(PPO):
                         std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e,
                         act_fn=act_fn, value_net='two_head', )
         
+        self.gamma_i = gamma_i
+        self.reward_rms = RunningMeanStd()
+        self.obs_rms = RunningMeanStd()
+        
         self.targ_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         for param in self.targ_net.parameters():
             param.requires_grad = False
@@ -397,24 +402,55 @@ class RND_PPO(PPO):
     def act(self, state):
         return super().act(state)
         
+
+    def calc_intr_adv(self, intrin_rew, intrin_values, intrin_nxt_values):
+        rewards = intrin_rew.detach()
+        T = len(rewards)
+        with torch.no_grad():
+            advantage = torch.zeros_like(intrin_values, dtype=torch.float32).to(device)
+        futureadv = 0
+        for t in reversed(range(T)):
+            delta = rewards[t] + self.gamma_i*intrin_nxt_values[t] - intrin_values[t]
+            futureadv = delta + self.gamma_i*self.lam*futureadv
+            advantage[t] = futureadv
+        target_values = (advantage + intrin_values).to(device)
+        advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
+        return advantage, target_values
+    
+    
     def train(self):
         if self.buffer.size > self.min_batch_size:
             print('training...')
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
             next_states = torch.stack(self.buffer.traj['next_states']).to(device)
+
+            norm_nxt_states = ((next_states - self.obs_rms.mean)/self.obs_rms.std).clip(-5, 5)
+
+            targ_feat = self.targ_net(norm_nxt_states)
+            pred_feat = self.pred_net(norm_nxt_states)
+            error = (targ_feat - pred_feat).pow(2)
+
+            intrin_rew = error.mean(dim=-1)
+
+            self.reward_rms.update(intrin_rew)
+
+            intrin_rew = intrin_rew/self.reward_rms.std
+
             with torch.no_grad():
                 values = self.calc_values(states)
-                next_values = self.calc_values(next_states)
-            advs, tar_values = self.calc_adv(values, next_values)
+                next_values = self.calc_values(next_states) 
+            int_advs, intr_tar_values = self.calc_intr_adv(intrin_rew)
+            ex_advs, ex_tar_values = self.calc_adv(values, next_values)
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
                 for mini_batch in mini_batches:                    
                     min_states = min_actions = min_advs = min_tar_values = torch.zeros(len(mini_batch)).to(device)
+                    
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
-                    min_tar_values = torch.tensor([tar_values[ind] for ind in mini_batch]).to(device)
+                    min_ex_tar_values = torch.tensor([ex_tar_values[ind] for ind in mini_batch]).to(device)
                     if self.net_is_shared:
                         self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)
                     else:
