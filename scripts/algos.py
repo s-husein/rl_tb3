@@ -387,7 +387,7 @@ class PPO(A2C):
 
 class RND_PPO(PPO):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
-                 min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
+                 min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001, pred_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.5,
                  beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu', ext_coef=2, intr_coef=1):
         
@@ -412,7 +412,7 @@ class RND_PPO(PPO):
         self.check_targ_net_file()
         self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         self.pred_net.train()
-        self.pred_net_optim = Adam(self.pred_net.parameters(), lr = 0.0001)
+        self.pred_net_optim = Adam(self.pred_net.parameters(), lr = pred_lr)
         print(f'predictor network:\n{self.pred_net}')
     
     def check_targ_net_file(self):

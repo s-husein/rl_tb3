@@ -1,5 +1,5 @@
 from gymenv import Gym
-from algos import A2C, PPO
+from algos import RND_PPO
 import numpy as np
 
 positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, -3), (1, -4),
@@ -18,16 +18,13 @@ max_pool = [2, 2]
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layers=conv_layers, obs_scale_factor=0.1)
 
-
-agent = PPO(env=env, k_epochs=10, net_is_shared=False,
-            name='ppo_cont:256x256, batch_size: 64, lam: 0.95, gamma:0.99, net_type:sep',
-            act_space=act_space, min_batch_size=50, batch_size=10, actor_lr=0.00003, critic_lr=0.00007,
-            lam=0.95, hid_layer=[256, 256], std_min_clip=0.1, eps_clip=0.4, gamma=0.999, act_fn='relu',
-            conv_layers=conv_layers, max_pool=max_pool)
+agent = RND_PPO(env, k_epochs=10, batch_size=64, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
+                actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
+                std_min_clip=0.1, eps_clip=0.3, beta=0.001)
 
 epoch = agent.check_status_file()
 
-for ep in range(epoch, 50001):
+for ep in range(epoch, 5001):
     except_flag = False
     done = False
     try:
