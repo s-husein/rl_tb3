@@ -413,6 +413,7 @@ class RND_PPO(PPO):
         self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = 0.0001)
+        print(f'predictor network:\n{self.pred_net}')
     
     def check_targ_net_file(self):
         if os.path.exists(self.targ_net_file):
