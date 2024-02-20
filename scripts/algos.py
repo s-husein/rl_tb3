@@ -7,11 +7,12 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Categorical, Normal
 import numpy as np
-from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER
+from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER, STATUSFILE
 from copy import deepcopy
 from dists import MultiCategorical
 from utils import RunningMeanStd
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+import os
 print(f'using {device}')
 
 
@@ -319,12 +320,16 @@ class PPO(A2C):
         torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.4)
         self.act_optim.step()
 
+        intr_loss = 0
         values = self.calc_values(states)
         if intr_tar_values is not None:
-            pass
+            values, intr_values = values[0], values[1]
+            intr_loss = F.mse_loss(intr_values, intr_tar_values).to(device)
+        
         value_loss = F.mse_loss(values, tar_values).to(device)
+        critic_loss = value_loss + intr_loss
         self.crit_optim.zero_grad()
-        value_loss.backward()
+        critic_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.4)
         self.crit_optim.step()    
 
@@ -383,7 +388,7 @@ class PPO(A2C):
 class RND_PPO(PPO):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
-                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
+                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.5,
                  beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu', ext_coef=2, intr_coef=1):
         
         super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
@@ -395,19 +400,74 @@ class RND_PPO(PPO):
         self.gamma_i = gamma_i
         self.ext_coef=ext_coef
         self.intr_coef = intr_coef
+        self.pred_update = predictor_update
         self.reward_rms = RunningMeanStd()
         self.obs_rms = RunningMeanStd()
+        self.targ_net_file = f'{MODELFOLDER}/target_net.pth'
         
         self.targ_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         for param in self.targ_net.parameters():
             param.requires_grad = False
 
+        self.check_targ_net_file()
         self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = 0.0001)
+    
+    def check_targ_net_file(self):
+        if os.path.exists(self.targ_net_file):
+            self.targ_net.load_state_dict(torch.load(self.targ_net_file))
+        else:
+            self.create_file(self.targ_net_file)
+            torch.save(self.targ_net.state_dict(), self.targ_net_file)
 
-    def act(self, state):
-        return super().act(state)
-        
+    def load_checkpoint(self, checkpath):
+        print('loading checkpoint..')
+        checkpoint = torch.load(checkpath)
+        if self.net_is_shared:
+            self.model.load_state_dict(checkpoint['model_state_dict'])
+            self.optim.load_state_dict(checkpoint['optim_state_dict'])
+            self.model.train()
+            self.old_policy.load_state_dict(self.model.state_dict())
+        else:
+            self.actor.load_state_dict(checkpoint['actor_state_dict'])
+            self.critic.load_state_dict(checkpoint['critic_state_dict'])
+            self.act_optim.load_state_dict(checkpoint['act_optim_state_dict'])
+            self.crit_optim.load_state_dict(checkpoint['crit_optim_state_dict'])
+            self.actor.train()
+            self.critic.train()
+            self.old_policy.load_state_dict(self.actor.state_dict())
+
+        self.pred_net.load_state_dict(checkpoint['pred_net_state_dict'])
+        self.pred_net_optim.load_state_dict(checkpoint['pred_net_optim'])
+        self.pred_net.train()
+        print('checkpoint loaded...')
+        return checkpoint['epoch']
+
+    def save_checkpoint(self, epoch, checkpath):
+        file = open(STATUSFILE, 'w')
+        if self.net_is_shared:
+            checkpoint = {
+                'model_state_dict': self.model.state_dict(),
+                'optim_state_dict': self.optim.state_dict(),
+                'pred_net_state_dict': self.pred_net.state_dict(),
+                'pred_net_optim': self.pred_net_optim.state_dict(),
+                'epoch': epoch
+            }
+        else:
+             checkpoint = {
+                'actor_state_dict': self.actor.state_dict(),
+                'act_optim_state_dict': self.act_optim.state_dict(),
+                'critic_state_dict': self.critic.state_dict(),
+                'crit_optim_state_dict': self.crit_optim.state_dict(),
+                'pred_net_state_dict': self.pred_net.state_dict(),
+                'pred_net_optim': self.pred_net_optim.state_dict(),
+                'epoch': epoch
+            }
+        file.write(checkpath)
+        file.close()
+        torch.save(checkpoint, checkpath)
+        print('checkpoint saved..')
 
     def calc_intr_adv(self, intrin_rew, intrin_values, intrin_nxt_values):
         rewards = intrin_rew.detach()
@@ -423,7 +483,6 @@ class RND_PPO(PPO):
         advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
         return advantage, target_values
     
-    
     def train(self):
         if self.buffer.size > self.min_batch_size:
             print('training...')
@@ -435,10 +494,9 @@ class RND_PPO(PPO):
 
             targ_feat = self.targ_net(norm_nxt_states)
             pred_feat = self.pred_net(norm_nxt_states)
-            error = (targ_feat - pred_feat).pow(2)
-            intrin_rew = error.mean(dim=-1)
-            self.reward_rms.update(intrin_rew)
-            intrin_rew = intrin_rew/self.reward_rms.std
+            intrin_error = (targ_feat - pred_feat).pow(2).mean(dim=-1).detach()
+            self.reward_rms.update(intrin_error)
+            intrin_rew = intrin_error/self.reward_rms.std
 
             with torch.no_grad():
                 values = self.calc_values(states)
@@ -454,17 +512,27 @@ class RND_PPO(PPO):
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
                 for mini_batch in mini_batches:                    
-                    min_states = min_actions = min_advs = min_ex_tar_values, min_intr_tar_values = torch.zeros(len(mini_batch)).to(device)
+                    min_states = min_actions = min_advs = min_ex_tar_values, min_intr_tar_values = min_targ_feat = min_pred_feat = torch.zeros(len(mini_batch)).to(device)
 
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
                     min_ex_tar_values = torch.tensor([ex_tar_values[ind] for ind in mini_batch]).to(device)
                     min_intr_tar_values = torch.tensor([intr_tar_values[ind] for ind in mini_batch]).to(device)
+                    min_targ_feat = torch.tensor([targ_feat[ind] for ind in mini_batch]).to(device)
+                    min_pred_feat = torch.tensor([pred_feat[ind] for ind in mini_batch]).to(device)
                     if self.net_is_shared:
+                        #add the intrinsic target values to the shared loss function
                         self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_ex_tar_values)
                     else:
-                        self.separate_loss(min_states, min_actions, min_advs, min_ex_tar_values)
+                        self.separate_loss(min_states, min_actions, min_advs, min_ex_tar_values, min_intr_tar_values)
+                    rnd_loss = self.pred_update*F.mse_loss(min_pred_feat, min_targ_feat)
+                    self.pred_net_optim.zero_grad()
+                    rnd_loss.backward()
+                    torch.nn.utils.clip_grad.clip_grad_norm(self.pred_net.parameters(), 0.4)
+                    self.pred_net_optim.step()
+
+
             self.buffer.reset()
             print('trained...')
             if self.net_is_shared:
