@@ -20,7 +20,7 @@ pre_steps = 100
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layers=conv_layers, obs_scale_factor=0.1)
 
-agent = RND_PPO(env, k_epochs=10, batch_size=64, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
+agent = RND_PPO(env, k_epochs=10, batch_size=2, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=10,
                 actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
                 std_min_clip=0.1, eps_clip=0.3, beta=0.001, max_pool=max_pool, act_fn='elu')
 
@@ -39,7 +39,8 @@ norm_obs_ = np.stack(norm_obs)
 print('updating normalization parameters...')
 agent.obs_rms.update(torch.tensor(norm_obs_).to('cuda'))
 
-for ep in range(epoch, 5001):
+# for ep in range(epoch, 5001):
+for ep in range(1):
     except_flag = False
     done = False
     try:
@@ -50,7 +51,8 @@ for ep in range(epoch, 5001):
     ep_ext_reward = 0.0
     ep_int_reward = 0.0
     steps = 0
-    while not done:
+    for i in range(20):
+    # while not done:
         action = agent.act(np.expand_dims(state, 0))
         try:
             next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
@@ -58,10 +60,11 @@ for ep in range(epoch, 5001):
         except:
             except_flag = True
             break
-        agent.buffer.add_experience(state, action, next_state, reward, done)
+        in_reward = agent.calc_intrin_rew(np.expand_dims(next_state, 0))
+        agent.buffer.add_experience(state, action, next_state, reward, done, in_reward)
         state = next_state
-        ep_int_reward += agent.calc_intrin_rew(np.expand_dims(next_state, 0))
         ep_ext_reward += reward
+        ep_int_reward += in_reward
         steps += 1
         if steps >= max_steps:
             break

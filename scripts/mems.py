@@ -3,7 +3,7 @@ import torch
 
 class Rollout:
     def __init__(self):
-        self.data_keys = ['states', 'actions', 'next_states', 'rewards', 'dones']
+        self.data_keys = ['states', 'actions', 'next_states', 'rewards', 'dones', 'in_rewards']
         self.reset()
         self.size = 0
 
@@ -31,8 +31,8 @@ class Rollout:
 
         return mini_batches
 
-    def add_experience(self, state, action, next_state, reward, done):
-        experience = (torch.tensor(state), action, torch.tensor(next_state), reward, done)
+    def add_experience(self, state, action, next_state, reward, done, in_rewards):
+        experience = (torch.tensor(state), action, torch.tensor(next_state), reward, done, in_rewards)
         for idx, key in enumerate(self.data_keys):
             self.traj[key].append(experience[idx])
         self.size += 1

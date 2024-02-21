@@ -152,7 +152,7 @@ class RunningMeanStd:
         self.count = self.eps
 
     def update(self, x: torch.Tensor):
-        x = x.squeeze()
+        x = x.squeeze().detach()
         batch_mean = torch.mean(x).to('cuda')
         batch_var = torch.var(x).to('cuda')
         batch_count = x.shape[0]
