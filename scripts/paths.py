@@ -1,4 +1,4 @@
-PARENTFOLDER = '~fyp/src/rl_tb3'
+PARENTFOLDER = '/home/user/fyp/src/rl_tb3'
 
 PLOTFOLDER = f'{PARENTFOLDER}/plots'
 MODELFOLDER = f'{PARENTFOLDER}/models'

@@ -405,12 +405,12 @@ class RND_PPO(PPO):
         self.obs_rms = RunningMeanStd()
         self.targ_net_file = f'{MODELFOLDER}/target_net.pth'
         
-        self.targ_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        self.targ_net = make_dnn(env, hid_layer, net_type='rnd',action_space=act_space, act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         for param in self.targ_net.parameters():
             param.requires_grad = False
 
         self.check_targ_net_file()
-        self.pred_net = make_dnn(env, hid_layer, net_type='rnd', act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        self.pred_net = make_dnn(env, hid_layer, net_type='rnd', action_space=act_space, act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
         self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = pred_lr)
         print(f'predictor network:\n{self.pred_net}')
@@ -421,6 +421,16 @@ class RND_PPO(PPO):
         else:
             self.create_file(self.targ_net_file)
             torch.save(self.targ_net.state_dict(), self.targ_net_file)
+
+    def calc_intrin_rew(self, next_state):
+        next_state = torch.from_numpy(next_state).to(device)
+        with torch.no_grad():
+            pred_feat = self.pred_net(next_state)
+            targ_feat = self.targ_net(next_state)
+
+        intrin_rew = (targ_feat - pred_feat).pow(2).sum(-1).detach()
+        return intrin_rew
+
 
     def load_checkpoint(self, checkpath):
         print('loading checkpoint..')

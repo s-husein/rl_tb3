@@ -154,9 +154,7 @@ class RunningMeanStd:
     def update(self, x: torch.Tensor):
         x = x.squeeze()
         batch_mean = torch.mean(x).to('cuda')
-        print(batch_mean)
         batch_var = torch.var(x).to('cuda')
-        print(batch_var)
         batch_count = x.shape[0]
 
         new_count = batch_count + self.count
