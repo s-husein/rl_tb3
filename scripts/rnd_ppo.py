@@ -33,14 +33,10 @@ state = env.reset()[0]
 for stp in range(pre_steps):
     action = env.action_space.sample()
     state, *others = env.step(action)
-    state_ = torch.tensor(state).to('cuda')
-    norm_obs.append(state_)
+    norm_obs.append(state)
     
-norm_obs_ = torch.stack(norm_obs)
-agent.obs_rms.update(norm_obs)
-
-
-
+norm_obs_ = np.stack(norm_obs)
+agent.obs_rms.update(torch.tensor(norm_obs_).to('cuda'))
 
 for ep in range(epoch, 5001):
     except_flag = False
@@ -50,7 +46,8 @@ for ep in range(epoch, 5001):
     except:
         ep -= 1
         continue
-    ep_reward = 0
+    ep_ext_reward = 0.0
+    ep_int_reward = 0.0
     steps = 0
     while not done:
         action = agent.act(np.expand_dims(state, 0))
@@ -62,15 +59,16 @@ for ep in range(epoch, 5001):
             break
         agent.buffer.add_experience(state, action, next_state, reward, done)
         state = next_state
-        ep_reward += reward
+        ep_int_reward += agent.calc_intrin_rew(np.expand_dims(next_state, 0))
+        ep_ext_reward += reward
         steps += 1
         if steps >= max_steps:
             break
     if except_flag:
         ep -= 1
         continue
-    print(f'ep. {ep}\tepisode rewards: {ep_reward}')
-    agent.write_plot_data(ep_reward)
+    print(f'ep. {ep}\tepisode_ext rewards: {ep_ext_reward}\tep_int_rewards: {ep_int_reward}')
+    agent.write_plot_data(ep_ext_reward, ep_int_reward)
     agent.train()
     agent.save_check_interval(epoch = ep)
-    agent.save_best_model(ep_reward)
+    agent.save_best_model(ep_ext_reward)

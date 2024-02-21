@@ -405,15 +405,17 @@ class RND_PPO(PPO):
         self.obs_rms = RunningMeanStd()
         self.targ_net_file = f'{MODELFOLDER}/target_net.pth'
         
-        self.targ_net = make_dnn(env, hid_layer, net_type='rnd',action_space=act_space, act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        self.targ_net = make_dnn(env, hid_layer, net_type='rnd',action_space=act_space,
+                                 act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool).to(device)
         for param in self.targ_net.parameters():
             param.requires_grad = False
 
         self.check_targ_net_file()
-        self.pred_net = make_dnn(env, hid_layer, net_type='rnd', action_space=act_space, act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool)
+        self.pred_net = make_dnn(env, hid_layer, net_type='rnd', action_space=act_space,
+                                 act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool).to(device)
         self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = pred_lr)
-        print(f'predictor network:\n{self.pred_net}')
+        print(f'predictor network: {self.pred_net}')
     
     def check_targ_net_file(self):
         if os.path.exists(self.targ_net_file):
@@ -429,8 +431,7 @@ class RND_PPO(PPO):
             targ_feat = self.targ_net(next_state)
 
         intrin_rew = (targ_feat - pred_feat).pow(2).sum(-1).detach()
-        return intrin_rew
-
+        return intrin_rew.item()
 
     def load_checkpoint(self, checkpath):
         print('loading checkpoint..')
@@ -479,6 +480,26 @@ class RND_PPO(PPO):
         file.close()
         torch.save(checkpoint, checkpath)
         print('checkpoint saved..')
+
+    def write_plot_data(self, ext_rewards, intr_rewards):
+        self.write_file(self.plot_file, f'{ext_rewards},{intr_rewards}\n')
+
+    def check_status_file(self):
+        checkpath = self.read_file(STATUSFILE)
+        epoch = 0
+        if checkpath != '':
+            epoch = self.load_checkpoint(checkpath) + 1
+            file = open(self.plot_file, 'r')
+            lines = file.readlines()
+            file = open(self.plot_file, 'w')
+            file.writelines(lines[:epoch+1])
+            file.close()
+        else:
+            file = open(self.plot_file, 'w')
+            file.close()
+            self.write_file(self.plot_file, 'Extrinsic_Rewards,Intrinsic_Rewards\n')
+            epoch = 0
+        return epoch
 
     def calc_intr_adv(self, intrin_rew, intrin_values, intrin_nxt_values):
         rewards = intrin_rew.detach()

@@ -1,5 +1,3 @@
+import csv
 
-x = [1, 2, 3, 4, 5]
-
-rm = 0.0
-
+reader = csv.reader('/home/user/fyp/src/rl_tb3/rewards/rnd_ppo_max_reward.txt')
