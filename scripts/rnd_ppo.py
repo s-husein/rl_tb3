@@ -16,7 +16,7 @@ conv_layers = [[16, 3, 1],
                [32, 3, 1],
                [64, 3, 1]]
 max_pool = [2, 2]
-pre_steps = 50
+pre_steps = 100
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layers=conv_layers, obs_scale_factor=0.1)
 
@@ -34,46 +34,43 @@ for stp in range(pre_steps):
     action = env.action_space.sample()
     state, *others = env.step(action)
     state_ = torch.tensor(state).to('cuda')
-    agent.obs_rms.update(state_)
     norm_obs.append(state_)
-
-print(len(norm_obs))
+    
 norm_obs_ = torch.stack(norm_obs)
+agent.obs_rms.update(norm_obs)
 
 
-print(norm_obs_.shape)
-print(agent.obs_rms.mean)
-print(norm_obs_.mean())
 
-# for ep in range(epoch, 5001):
-#     except_flag = False
-#     done = False
-#     try:
-#         state = env.reset()[0]
-#     except:
-#         ep -= 1
-#         continue
-#     ep_reward = 0
-#     steps = 0
-#     while not done:
-#         action = agent.act(np.expand_dims(state, 0))
-#         try:
-#             next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
-#             env.render()
-#         except:
-#             except_flag = True
-#             break
-#         agent.buffer.add_experience(state, action, next_state, reward, done)
-#         state = next_state
-#         ep_reward += reward
-#         steps += 1
-#         if steps >= max_steps:
-#             break
-#     if except_flag:
-#         ep -= 1
-#         continue
-#     print(f'ep. {ep}\tepisode rewards: {ep_reward}')
-#     agent.write_plot_data(ep_reward)
-#     agent.train()
-#     agent.save_check_interval(epoch = ep)
-#     agent.save_best_model(ep_reward)
+
+for ep in range(epoch, 5001):
+    except_flag = False
+    done = False
+    try:
+        state = env.reset()[0]
+    except:
+        ep -= 1
+        continue
+    ep_reward = 0
+    steps = 0
+    while not done:
+        action = agent.act(np.expand_dims(state, 0))
+        try:
+            next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
+            env.render()
+        except:
+            except_flag = True
+            break
+        agent.buffer.add_experience(state, action, next_state, reward, done)
+        state = next_state
+        ep_reward += reward
+        steps += 1
+        if steps >= max_steps:
+            break
+    if except_flag:
+        ep -= 1
+        continue
+    print(f'ep. {ep}\tepisode rewards: {ep_reward}')
+    agent.write_plot_data(ep_reward)
+    agent.train()
+    agent.save_check_interval(epoch = ep)
+    agent.save_best_model(ep_reward)
