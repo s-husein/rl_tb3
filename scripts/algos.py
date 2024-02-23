@@ -14,6 +14,7 @@ from utils import RunningMeanStd
 import os
 
 
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
 
@@ -544,7 +545,7 @@ class RND_PPO(PPO):
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
                 for mini_batch in mini_batches:                    
-                    min_states = min_actions = min_advs = min_ex_tar_values = min_intr_tar_values, min_next_states = torch.zeros(len(mini_batch)).to(device)
+                    min_states = min_actions = min_advs = min_ex_tar_values = min_intr_tar_values= min_next_states = torch.zeros(len(mini_batch)).to(device)
 
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_next_states = torch.stack([next_states[ind] for ind in mini_batch]).to(device)

@@ -11,10 +11,16 @@ import numpy as np
 import tf.transformations as tft
 import random
 import math
+import subprocess
+import time
 
 class Gym(gym.Env):
 
     def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1, conv_layers=None):
+        proc = subprocess.Popen(['gnome-terminal', '--tab', '--', 'bash', '-c', 'roslaunch rl_tb3 tb3gazebo.launch'])
+        print('launching environment')
+        time.sleep(15)
+        print('env launched...')
         self._action_space = action_space
         self._bins = bins
         self.POS = positions

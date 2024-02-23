@@ -1,20 +1,13 @@
-import torch
+import cv2 as cv
+import numpy as np
+import subprocess
+import time
 
-device ='cuda'
 
-update_proportion = 0.25
+proc = subprocess.Popen(['gnome-terminal', '--tab', '--', 'bash', '-c','roslaunch rl_tb3 tb3gazebo.launch'])
 
-forward_loss = torch.rand(10).to(device)
+proc.wait()
 
-print(forward_loss)
+print('waiting..find')
 
-mask = torch.rand(len(forward_loss)).to(device)
 
-print(mask)
-mask = (mask < update_proportion).type(torch.FloatTensor).to(device)
-print(mask)
-
-print(forward_loss * mask)
-forward_loss = (forward_loss * mask).sum() / torch.max(mask.sum(), torch.Tensor([1]).to(device))
-
-print(forward_loss)
