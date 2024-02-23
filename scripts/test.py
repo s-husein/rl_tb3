@@ -1,3 +1,20 @@
-import csv
+import torch
 
-reader = csv.reader('/home/user/fyp/src/rl_tb3/rewards/rnd_ppo_max_reward.txt')
+device ='cuda'
+
+update_proportion = 0.25
+
+forward_loss = torch.rand(10).to(device)
+
+print(forward_loss)
+
+mask = torch.rand(len(forward_loss)).to(device)
+
+print(mask)
+mask = (mask < update_proportion).type(torch.FloatTensor).to(device)
+print(mask)
+
+print(forward_loss * mask)
+forward_loss = (forward_loss * mask).sum() / torch.max(mask.sum(), torch.Tensor([1]).to(device))
+
+print(forward_loss)

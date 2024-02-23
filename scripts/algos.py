@@ -564,11 +564,15 @@ class RND_PPO(PPO):
 
                     normz_states = ((min_next_states-self.obs_rms.mean)/self.obs_rms.std).clip(-5, 5)
                     with torch.no_grad():
-                        targ_feat = self.targ_net(normz_states)
+                        targ_feat = self.targ_net(normz_states).detach()
                     pred_feat = self.pred_net(normz_states)
-                    rnd_loss = self.pred_update*F.mse_loss(pred_feat, targ_feat)
+
+                    frwd_loss = F.mse_loss(pred_feat, targ_feat, reduction='none').mean(dim=-1)
+                    mask = torch.rand(len(frwd_loss)).to(device)
+                    mask = (mask < self.pred_update).type(torch.FloatTensor).to(device)
+                    frwd_loss = (frwd_loss * mask).sum() / torch.max(mask.sum(), torch.Tensor([1]).to(device))
                     self.pred_net_optim.zero_grad()
-                    rnd_loss.backward()
+                    frwd_loss.backward()
                     torch.nn.utils.clip_grad.clip_grad_norm_(self.pred_net.parameters(), 0.4)
                     self.pred_net_optim.step()
 
