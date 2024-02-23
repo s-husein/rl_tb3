@@ -12,10 +12,6 @@ from copy import deepcopy
 from dists import MultiCategorical
 from utils import RunningMeanStd
 import os
-from torchviz import make_dot
-
-def plot_graph(vari):
-        make_dot(vari).render('/home/user/fyp/src/rl_tb3/graph', format='png')
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
