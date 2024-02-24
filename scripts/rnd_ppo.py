@@ -19,7 +19,7 @@ env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layer
 
 agent = RND_PPO(env, k_epochs=10, batch_size=64, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
                 actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
-                std_min_clip=0.1, eps_clip=0.4, beta=0.01, max_pool=max_pool, act_fn='relu', predictor_update=0.2)
+                std_min_clip=0.1, eps_clip=0.4, beta=0.001, max_pool=max_pool, act_fn='relu')
 
 epoch = agent.check_status_file()
 
@@ -68,7 +68,7 @@ for ep in range(epoch, 10001):
     if except_flag:
         ep -= 1
         continue
-    print(f'ep. {ep}\tepisode_ext rewards: {ep_ext_reward}\tep_int_rewards: {ep_int_reward}')
+    print(f'ep. {ep}\tepisode_ext rewards: {round(ep_ext_reward, 3)}\tep_int_rewards: {round(ep_int_reward, 3)}')
     agent.write_plot_data(ep_ext_reward, ep_int_reward)
     agent.train()
     agent.save_check_interval(epoch = ep)
