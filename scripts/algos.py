@@ -487,7 +487,7 @@ class RND_PPO(PPO):
         print('checkpoint saved..')
 
     def write_plot_data(self, ext_rewards, intr_rewards):
-        self.write_file(self.plot_file, f'{ext_rewards},{intr_rewards}\n')
+        self.write_file(self.plot_file, f'{round(ext_rewards, 3)},{round(intr_rewards, 3)}\n')
 
     def check_status_file(self):
         checkpath = self.read_file(STATUSFILE)
