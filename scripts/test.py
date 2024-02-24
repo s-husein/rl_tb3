@@ -4,10 +4,6 @@ import subprocess
 import time
 
 
-proc = subprocess.Popen(['gnome-terminal', '--tab', '--', 'bash', '-c','roslaunch rl_tb3 tb3gazebo.launch'])
 
-proc.wait()
-
-print('waiting..find')
 
 

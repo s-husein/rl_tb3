@@ -40,7 +40,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         for conv in conv_layers:
             out_chann, filter_size, stride = conv
             layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
-            layers.append(nn.ELU())
+            layers.append(activation_fun[act_fn])
 
             out_h = (inp_h - filter_size)//stride + 1
             out_w = (inp_w - filter_size)//stride + 1
