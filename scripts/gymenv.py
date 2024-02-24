@@ -11,8 +11,7 @@ import numpy as np
 import tf.transformations as tft
 import random
 import math
-import subprocess
-import time
+
 
 class Gym(gym.Env):
 
