@@ -391,7 +391,7 @@ class PPO(A2C):
 class RND_PPO(PPO):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001, pred_lr = 0.001,
-                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.5, rnd_feat=[128],
+                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.25, rnd_feat=[128],
                  beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu', ext_coef=2, intr_coef=1):
         
         super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,

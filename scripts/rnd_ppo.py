@@ -17,9 +17,9 @@ pre_steps = 100
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layers=conv_layers, obs_scale_factor=0.1)
 
-agent = RND_PPO(env, k_epochs=10, batch_size=64, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
+agent = RND_PPO(env, k_epochs=5, batch_size=16, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
                 actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
-                std_min_clip=0.1, eps_clip=0.4, beta=0.001, max_pool=max_pool, act_fn='relu')
+                std_min_clip=0.1, eps_clip=0.1, beta=0.001, max_pool=max_pool, act_fn='relu')
 
 epoch = agent.check_status_file()
 
