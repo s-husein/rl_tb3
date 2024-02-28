@@ -10,14 +10,13 @@ max_steps = 5000
 act_space = 'cont'
 hid_layers = [256, 256]
 conv_layers = [[16, 3, 1],
-               [32, 3, 1],
-               [64, 3, 1]]
+               [32, 3, 1]]
 max_pool = [2, 2]
 pre_steps = 100
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layers=conv_layers, obs_scale_factor=0.1)
 
-agent = RND_PPO(env, k_epochs=5, batch_size=16, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
+agent = RND_PPO(env, k_epochs=5, batch_size=64, hid_layer=hid_layers, conv_layers=conv_layers, min_batch_size=2048,
                 actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
                 std_min_clip=0.1, eps_clip=0.1, beta=0.001, max_pool=max_pool, act_fn='relu')
 
@@ -68,7 +67,7 @@ for ep in range(epoch, 10001):
     if except_flag:
         ep -= 1
         continue
-    print(f'ep. {ep}\tepisode_ext rewards: {round(ep_ext_reward, 3)}\tep_int_rewards: {round(ep_int_reward, 3)}')
+    print(f'ep. {ep}\t{ep_ext_reward = :.3f}\t{ep_int_reward = :.3f}\t{steps = }')
     agent.write_plot_data(ep_ext_reward, ep_int_reward)
     agent.train()
     agent.save_check_interval(epoch = ep)
