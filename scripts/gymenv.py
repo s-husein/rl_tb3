@@ -11,11 +11,13 @@ import numpy as np
 import tf.transformations as tft
 import random
 import math
+import subprocess
 
 
 class Gym(gym.Env):
 
     def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1, conv_layers=None):
+        subprocess.call('roslaunch rl_tb3 tb3gazebo.launch &', shell=True)
         self._action_space = action_space
         self._bins = bins
         self.POS = positions

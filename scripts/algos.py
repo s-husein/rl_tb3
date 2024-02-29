@@ -389,9 +389,10 @@ class PPO(A2C):
 
 
 class RND_PPO(PPO):
-    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
+    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, rnd_hid_layer = {256, 256, 128},
+                 rnd_conv_layer= None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001, pred_lr = 0.001,
-                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.25, rnd_feat=[128],
+                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.25,
                  beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu', ext_coef=2, intr_coef=1):
         
         super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
@@ -407,18 +408,19 @@ class RND_PPO(PPO):
         self.reward_rms = RunningMeanStd()
         self.obs_rms = RunningMeanStd()
         self.targ_net_file = f'{MODELFOLDER}/target_net.pth'
-        rnd_hid_layer = hid_layer + rnd_feat
-        self.targ_net = make_dnn(env, rnd_hid_layer, net_type='rnd',action_space=act_space,
-                                 act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool).to(device)
+
+        self.targ_net = make_dnn(env, [rnd_hid_layer[-1]], net_type='rnd',action_space=act_space,
+                                 act_fn=act_fn, conv_layers=rnd_conv_layer[:-1], max_pool=max_pool).to(device)
         for param in self.targ_net.parameters():
             param.requires_grad = False
 
         self.check_targ_net_file()
         self.pred_net = make_dnn(env, rnd_hid_layer, net_type='rnd', action_space=act_space,
-                                 act_fn=act_fn, conv_layers=conv_layers, max_pool=max_pool).to(device)
+                                 act_fn=act_fn, conv_layers=rnd_conv_layer, max_pool=max_pool).to(device)
         self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = pred_lr)
         print(f'predictor network: {self.pred_net}')
+        print(f'target network{self.targ_net}')
     
     def check_targ_net_file(self):
         if os.path.exists(self.targ_net_file):
@@ -521,7 +523,7 @@ class RND_PPO(PPO):
             futureadv = delta + self.gamma_i*self.lam*futureadv
             advantage[t] = futureadv
         target_values = (advantage + intrin_values).to(device)
-        advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
+        # advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
         return advantage, target_values
     
     def train(self):
