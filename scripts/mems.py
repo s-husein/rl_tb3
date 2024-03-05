@@ -31,9 +31,10 @@ class Rollout:
 
         return mini_batches
 
-    def add_experience(self, state, action, next_state, reward, done, in_rewards):
+    def add_experience(self, state, action, next_state, reward, done, in_rewards = None):
         experience = (torch.tensor(state), action, torch.tensor(next_state), reward, done, in_rewards)
         for idx, key in enumerate(self.data_keys):
-            self.traj[key].append(experience[idx])
+            if experience[idx] is not None:
+                self.traj[key].append(experience[idx])
         self.size += 1
 

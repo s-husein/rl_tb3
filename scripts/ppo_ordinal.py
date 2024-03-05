@@ -1,6 +1,7 @@
 from gymenv import Gym
 from algos import A2C, PPO
 import numpy as np
+import torch
 
 positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, -3), (1, -4),
              (1, -5), (1, -6), (1, -8), (1, -10), (2, -10), (2, -8), (2, -6), (3, -9), (3, -8),
@@ -20,6 +21,7 @@ agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             batch_size=64, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.9, lam=0.95,
             hid_layer=[256, 256], std_min_clip=1, eps_clip=0.4, act_fn='relu', bins=7,
             beta=0.07)
+
 
 epoch = agent.check_status_file()
 

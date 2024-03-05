@@ -91,6 +91,7 @@ class A2C(Utils):
         self.gamma = gamma
         self.std_min_clip = std_min_clip
         self.beta = beta
+        self.conv_layer = conv_layers
         if self.net_is_shared:
             self.model = make_dnn(env, hid_layers=hid_layer, net_type='shared', action_space=act_space,
                                   bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
@@ -110,6 +111,8 @@ class A2C(Utils):
 
     def act(self, state):
         state = torch.from_numpy(state).to(device)
+        if self.conv_layer is None:
+            state = state.flatten()
         if self.net_is_shared:
             logits = self.model(state)[:-1]
         else:
@@ -268,8 +271,10 @@ class PPO(A2C):
 
     def act(self, state):
         state = torch.from_numpy(state).to(device)
+        if self.conv_layer is None:
+            state = state.flatten()
         with torch.no_grad():
-            logits = self.old_policy(state).squeeze()
+            logits = self.old_policy(state)
             if self.net_is_shared:
                 logits = logits[:-1]
 
