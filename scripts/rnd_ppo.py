@@ -7,31 +7,35 @@ positions = [(1, -1), (1, -2)]
 
 angles = np.arange(0, 360, 15)
 max_steps = 5000
-act_space = 'cont'
+act_space = 'discretize'
 rnd_hid_layer = hid_layers = [256, 256, 128]
 
 conv_layers = [[16, 5, 1],
                [32, 3, 1]]
 max_pool = [2, 2]
-pre_steps = 100
+pre_steps = 5
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, conv_layers=conv_layers, obs_scale_factor=0.05)
 
-agent = RND_PPO(env, k_epochs=5, batch_size=64, hid_layer=hid_layers, min_batch_size=2048,
+agent = RND_PPO(env, k_epochs=5, batch_size=64, hid_layer=hid_layers, min_batch_size=2048, bins=7,
                 actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
-                rnd_hid_layer=rnd_hid_layer, std_min_clip=0.1, eps_clip=0.1, beta=0.001,
+                rnd_hid_layer=rnd_hid_layer, std_min_clip=0.1, eps_clip=0.1, beta=0.001, ordinal=True,
                 max_pool=max_pool, act_fn='relu', rnd_conv_layer=conv_layers)
 
 # epoch = agent.check_status_file()
 
 
-# #taking random steps to initialize normalization parameters
-# norm_obs = []
-# state = env.reset()[0]
-# for stp in range(pre_steps):
-#     action = env.action_space.sample()
-#     state, *others = env.step(action)
-#     norm_obs.append(state)
+#taking random steps to initialize normalization parameters
+norm_obs = []
+for stp in range(pre_steps):
+    state = torch.tensor(env.reset()[0]).flatten().to('cpu')
+    norm_obs.append(state)
+norm_obs_ = torch.stack(norm_obs)
+
+actions = agent.actor(state)
+
+print(actions)
+
     
 # norm_obs_ = np.stack(norm_obs)
 # print('updating normalization parameters...')

@@ -246,12 +246,12 @@ class A2C(Utils):
 class PPO(A2C):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
-                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07,
+                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, ordinal=False,
                  beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu', policy_net = 'actor', value_net = 'critic'):
         
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                                   actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, bins=bins, hid_layer=hid_layer,
-                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn,
+                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn, ordinal=ordinal,
                                   conv_layers = conv_layers, max_pool=max_pool,policy_net=policy_net, value_net=value_net)
         
 
@@ -390,7 +390,7 @@ class PPO(A2C):
 
 class RND_PPO(PPO):
     def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, rnd_hid_layer = {256, 256, 128},
-                 rnd_conv_layer= None, max_pool = None, bins=None,
+                 rnd_conv_layer= None, max_pool = None, bins=None, ordinal=False,
                  min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001, pred_lr = 0.001,
                  act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, predictor_update=0.25,
                  beta=0.01, eps_clip=0.1, gamma_e=0.999, gamma_i = 0.99, act_fn = 'relu', ext_coef=2, intr_coef=1):
@@ -398,7 +398,7 @@ class RND_PPO(PPO):
         super(RND_PPO, self).__init__(env=env, k_epochs=k_epochs, batch_size=batch_size, hid_layer=hid_layer, conv_layers=conv_layers,
                         max_pool=max_pool, bins=bins, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                         actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, name=name, lam=lam,
-                        std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e,
+                        std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e, ordinal=ordinal,
                         act_fn=act_fn, value_net='two_head', )
         
         self.gamma_i = gamma_i
@@ -409,13 +409,13 @@ class RND_PPO(PPO):
         self.obs_rms = RunningMeanStd()
         self.targ_net_file = f'{MODELFOLDER}/target_net.pth'
 
-        self.targ_net = make_dnn(env, [rnd_hid_layer[-1]], net_type='rnd',action_space=act_space,
+        self.targ_net = make_dnn(env, rnd_hid_layer[-2:], net_type='rnd',action_space=act_space, bins=bins,
                                  act_fn=act_fn, conv_layers=rnd_conv_layer[:-1], max_pool=max_pool).to(device)
         for param in self.targ_net.parameters():
             param.requires_grad = False
 
         self.check_targ_net_file()
-        self.pred_net = make_dnn(env, rnd_hid_layer, net_type='rnd', action_space=act_space,
+        self.pred_net = make_dnn(env, rnd_hid_layer, net_type='rnd', action_space=act_space, bins=bins,
                                  act_fn=act_fn, conv_layers=rnd_conv_layer, max_pool=max_pool).to(device)
         self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = pred_lr)

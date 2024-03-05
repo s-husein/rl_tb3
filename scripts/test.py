@@ -120,6 +120,7 @@ class StateDependentNoiseDistribution(Distribution):
         log_std = th.ones(self.latent_sde_dim, self.action_dim) if self.full_std else th.ones(self.latent_sde_dim, 1)
         # Transform it to a parameter so it can be optimized
         log_std = nn.Parameter(log_std * log_std_init, requires_grad=True)
+        log_std.p
         # Sample an exploration matrix
         self.sample_weights(log_std)
         return mean_actions_net, log_std

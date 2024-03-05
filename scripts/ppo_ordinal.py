@@ -7,19 +7,19 @@ positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, 
              (3, -7), (4, -8), (5, -7), (4, -10), (5, -10), (3, -4), (4, -4), (3, -5), (4, -5), (4, -6),
              (5, -7), (6, -7), (7, -9), (7, -10), (7, -7)]
 angles = np.arange(0, 360, 15)
-max_steps = 10000
+max_steps = 1000
 
 act_space ='discretize'
 
-env = Gym(action_space=act_space, positions=positions, angles=angles)
+env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=0.05)
 
 
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             name='ppo_ordinal:256x256_batch_size:64_lam:0.95_gamma:0.99_net_type:sep',
-            act_space=act_space, min_batch_size=2048,
-            batch_size=64, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.999, lam=0.95,
-            hid_layer=[256, 256], std_min_clip=0.08, eps_clip=0.3, act_fn='relu', bins=7,
-            beta=0.05)
+            act_space=act_space, min_batch_size=2048, ordinal=True,
+            batch_size=64, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.9, lam=0.95,
+            hid_layer=[256, 256], std_min_clip=1, eps_clip=0.4, act_fn='relu', bins=7,
+            beta=0.07)
 
 epoch = agent.check_status_file()
 
