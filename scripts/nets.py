@@ -2,7 +2,8 @@ import torch.nn as nn
 import torch
 import numpy as np
 from gym import Env
-from gymenv import Gym
+
+pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 class Ordinal(nn.Module):
     def __init__(self, action_dim, ordinal):
@@ -20,7 +21,7 @@ class Ordinal(nn.Module):
     def create_ordinal(self, logits):
         dims = logits.dim() - 1 
         repeat_n  = max(min(logits.size()[0]*dims, logits.size()[0]*dims), 1)
-        iden = torch.tril(torch.ones_like(torch.eye(logits.size()[-1])))[np.newaxis, :].repeat(repeat_n, 1, 1)
+        iden = torch.tril(torch.ones_like(torch.eye(logits.size()[-1]).to(pu)))[np.newaxis, :].repeat(repeat_n, 1, 1)
         inv_iden = 1 - iden
         if dims > 0:
             logits = logits[:, np.newaxis]
