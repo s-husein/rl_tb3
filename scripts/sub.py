@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from sensor_msgs.msg import CompressedImage
+from sensor_msgs.msg import CompressedImage, Image
 import rospy
 from cv_bridge import CvBridge
 import cv2 as cv
@@ -18,16 +18,22 @@ if __name__ == '__main__':
     rospy.init_node('img_ros', anonymous=True)
     # while True:
     ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw/compressedDepth', CompressedImage,10)
-    cv_img = CvBridge().imgmsg_to_cv2(ros_img)
-    # cv.normalize(cv_img, cv_img, 0, 1, norm_type=cv.NORM_MINMAX)
-    cv_img = cv_img/10000.0
-    cv_img = np.nan_to_num(cv_img)
-    cv_img = (cv_img*255).astype(np.uint8)
-    # cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
-    # cv_img = np.expand_dims(cv_img, axis=0)
+    print(ros_img.deserialize())
+#     compressed = CompressedImage(ros_img)
+#     print(compressed.header)
+
+#     ros_arr = np.frombuffer(ros_img.data, np.uint8)
+#     cv_img = cv.imdecode(ros_arr, 1)
     
-    cv.imshow('state', cv_img)
-    cv.waitKey()
-    print(cv_img.shape)
-    print(f'average {np.average(cv_img)}, black pixels: {np.sum(cv_img < 7)}')
-    cv.destroyAllWindows()
+#     print(ros_arr.shape)
+#     cv_img = CvBridge().imgmsg_to_cv2(ros_img)
+#     cv_img = cv_img/10000.0
+#     cv_img = np.nan_to_num(cv_img)
+#     cv_img = (cv_img*255).astype(np.uint8)
+#     # cv_img = np.expand_dims(cv_img, axis=0)
+#     cv_img = cv.resize(cv_img, (0, 0), fx = 0.05, fy = 0.05)
+#     cv.imshow('state', cv_img)
+#     cv.waitKey()
+# #     print(cv_img.shape)
+# #     print(f'average {np.average(cv_img)}, black pixels: {np.sum(cv_img < 7)}')
+#     cv.destroyAllWindows()
