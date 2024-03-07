@@ -14,7 +14,7 @@ rnd_hid_layer = hid_layers = [256, 256, 128]
 conv_layers = [[16, 5, 1],
                [32, 3, 1]]
 max_pool = [2, 2]
-pre_steps = 200
+pre_steps = 5 
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=0.1, conv_layers=conv_layers)
 

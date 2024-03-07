@@ -326,7 +326,7 @@ class PPO(A2C):
         intr_loss = 0
         values = self.calc_values(states)
         if intr_tar_values is not None:
-            values, intr_values = values[0], values[1]
+            values, intr_values = torch.unbind(values, dim=-1)
             intr_loss = F.mse_loss(intr_values, intr_tar_values).to(device)
         
         value_loss = F.mse_loss(values, tar_values).to(device)
@@ -510,7 +510,6 @@ class RND_PPO(PPO):
 
     def calc_intr_adv(self, intrin_values, intrin_nxt_values):
         rewards_ = self.buffer.traj['in_rewards']
-
         T = len(rewards_)
         with torch.no_grad():
             rewards = torch.tensor(rewards_, dtype=torch.float32).to(device)
@@ -538,8 +537,9 @@ class RND_PPO(PPO):
             with torch.no_grad():
                 values = self.calc_values(states)
                 next_values = self.calc_values(next_states) 
-            ext_val, intr_val = values[0], values[1]
-            ext_nxt_val, intr_nxt_val = next_values[0], next_values[1]
+            
+            ext_val, intr_val = torch.unbind(values, dim=-1)
+            ext_nxt_val, intr_nxt_val = torch.unbind(next_values, dim=-1)
 
             intr_advs, intr_tar_values = self.calc_intr_adv(intr_val, intr_nxt_val)
             ext_advs, ex_tar_values = self.calc_adv(ext_val, ext_nxt_val)
