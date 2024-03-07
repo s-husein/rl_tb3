@@ -510,13 +510,15 @@ class RND_PPO(PPO):
 
     def calc_intr_adv(self, intrin_values, intrin_nxt_values):
         rewards_ = self.buffer.traj['in_rewards']
+
         T = len(rewards_)
         with torch.no_grad():
             rewards = torch.tensor(rewards_, dtype=torch.float32).to(device)
             advantage = torch.zeros_like(intrin_values, dtype=torch.float32).to(device)
 
         self.reward_rms.update(rewards)
-        rewards = rewards/self.reward_rms.std
+        rewards = (rewards - rewards.min())/(rewards.max() - rewards.min() + 1e-11)
+        # rewards = rewards/self.reward_rms.std
         futureadv = 0
         for t in reversed(range(T)):
             delta = rewards[t] + self.gamma_i*intrin_nxt_values[t] - intrin_values[t]
