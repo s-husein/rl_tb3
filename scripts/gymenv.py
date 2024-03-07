@@ -11,7 +11,6 @@ import numpy as np
 import tf.transformations as tft
 import random
 import math
-import subprocess
 
 
 class Gym(gym.Env):
@@ -43,6 +42,8 @@ class Gym(gym.Env):
             action = self.conv_action(encode[_action[0]], encode[_action[1]])
             self.act_c(action)
         observation = self.get_observation()
+        if self.conv_layers is None:
+            observation  = observation.flatten()
         reward, done = self.get_reward(action, observation)
         return (observation/255.0).astype(np.float32), reward, done, False, {}
 
@@ -54,6 +55,8 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
         observation = self.get_observation()
+        if self.conv_layers is None:
+            observation = observation.flatten()
         return (observation/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards
@@ -94,7 +97,7 @@ class Gym(gym.Env):
     def get_observation(self):
         ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
-        cv_img = cv_img/7.0
+        cv_img = cv_img/10.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)

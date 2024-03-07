@@ -26,6 +26,7 @@ agent = PPO(env=env, k_epochs=10, net_is_shared=False,
 epoch = agent.check_status_file()
 
 for ep in range(epoch, 50001):
+# for ep in range(1):
     except_flag = False
     done = False
     try:
@@ -36,6 +37,7 @@ for ep in range(epoch, 50001):
     ep_reward = 0
     steps = 0
     while not done:
+    # for _ in range(15):
         action = agent.act(state)
         try:
             next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
@@ -52,7 +54,7 @@ for ep in range(epoch, 50001):
     if except_flag:
         ep -= 1
         continue
-    print(f'ep. {ep}\tepisode rewards: {ep_reward}')
+    print(f'ep. {ep}\tepisode rewards: {ep_reward}\t{steps =}')
     agent.write_plot_data(ep_reward)
     agent.train()
     agent.save_check_interval(epoch = ep)

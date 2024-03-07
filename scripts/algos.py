@@ -111,8 +111,6 @@ class A2C(Utils):
 
     def act(self, state):
         state = torch.from_numpy(state).to(device)
-        if self.conv_layer is None:
-            state = state.flatten()
         if self.net_is_shared:
             logits = self.model(state)[:-1]
         else:
@@ -131,7 +129,7 @@ class A2C(Utils):
         if self.net_is_shared:
             values = self.model(states)[:, -1]
         else:
-            values = self.critic(states).transpose(0, 1)
+            values = self.critic(states).squeeze()
         return values
     
     def calc_pd(self, states):
@@ -271,8 +269,6 @@ class PPO(A2C):
 
     def act(self, state):
         state = torch.from_numpy(state).to(device)
-        if self.conv_layer is None:
-            state = state.flatten()
         with torch.no_grad():
             logits = self.old_policy(state)
             if self.net_is_shared:
@@ -317,7 +313,6 @@ class PPO(A2C):
             old_logits = self.old_policy(states)
             old_log_probs = self.log_probs(old_logits, actions)[0]
         assert old_log_probs.shape == log_probs.shape
-
         ratios = torch.exp(log_probs - old_log_probs)
         surr1 = ratios * advs
         surr2 = torch.clamp(ratios, 1.0 - self.eps_clip, 1.0 + self.eps_clip) * advs
