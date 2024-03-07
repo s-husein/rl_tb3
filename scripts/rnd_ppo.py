@@ -29,7 +29,8 @@ epoch = agent.check_status_file()
 print('taking random steps in environment for initialization of parameters...')
 norm_obs = []
 for stp in range(pre_steps):
-    state = env.reset()[0]
+    action = env.action_space.sample()
+    state, *others = env.step(action)
     norm_obs.append(state)
 
     
