@@ -42,8 +42,6 @@ class Gym(gym.Env):
             action = self.conv_action(encode[_action[0]], encode[_action[1]])
             self.act_c(action)
         observation = self.get_observation()
-        if self.conv_layers is None:
-            observation  = observation.flatten()
         reward, done = self.get_reward(action, observation)
         return (observation/255.0).astype(np.float32), reward, done, False, {}
 
@@ -55,8 +53,6 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        if self.conv_layers is None:
-            observation = observation.flatten()
         return (observation/255.0).astype(np.float32), {}
     
     def get_reward(self, action, state):#contin.. action space rewards

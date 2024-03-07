@@ -270,7 +270,7 @@ class PPO(A2C):
     def act(self, state):
         state = torch.from_numpy(state).to(device)
         with torch.no_grad():
-            logits = self.old_policy(state)
+            logits = self.old_policy(state).squeeze()
             if self.net_is_shared:
                 logits = logits[:-1]
 
@@ -420,7 +420,7 @@ class RND_PPO(PPO):
         self.pred_net.train()
         self.pred_net_optim = Adam(self.pred_net.parameters(), lr = pred_lr)
         print(f'predictor network: {self.pred_net}')
-        print(f'target network{self.targ_net}')
+        print(f'target network: {self.targ_net}')
     
     def check_targ_net_file(self):
         if os.path.exists(self.targ_net_file):

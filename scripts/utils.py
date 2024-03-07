@@ -1,8 +1,8 @@
 from paths import CHECKPOINTFOLDER, STATUSFILE
 import torch
 import os
-import numpy as np
 
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 class Utils:
     def __init__(self):
         self.model = None
@@ -153,8 +153,8 @@ class RunningMeanStd:
 
     def update(self, x: torch.Tensor):
         x = x.squeeze().detach()
-        batch_mean = torch.mean(x).to('cuda')
-        batch_var = torch.var(x).to('cuda')
+        batch_mean = torch.mean(x).to(device)
+        batch_var = torch.var(x).to(device)
         batch_count = x.shape[0]
 
         new_count = batch_count + self.count

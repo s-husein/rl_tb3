@@ -8,7 +8,7 @@ positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, 
              (3, -7), (4, -8), (5, -7), (4, -10), (5, -10), (3, -4), (4, -4), (3, -5), (4, -5), (4, -6),
              (5, -7), (6, -7), (7, -9), (7, -10), (7, -7)]
 angles = np.arange(0, 360, 15)
-max_steps = 1000
+max_steps = 1800
 
 act_space ='discretize'
 
@@ -54,7 +54,7 @@ for ep in range(epoch, 50001):
     if except_flag:
         ep -= 1
         continue
-    print(f'ep. {ep}\tepisode rewards: {ep_reward}\t{steps =}')
+    print(f'ep. {ep}\tepisode rewards: {ep_reward}\t{steps = }')
     agent.write_plot_data(ep_reward)
     agent.train()
     agent.save_check_interval(epoch = ep)
