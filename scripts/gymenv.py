@@ -39,9 +39,7 @@ class Gym(gym.Env):
             self.act_c(action)
         elif self._action_space == 'discretize':
             encode = np.linspace(-1, 1, self._bins)
-            print(encode)
             action = self.conv_action(encode[_action[0]], encode[_action[1]])
-            print(action)
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
@@ -64,9 +62,9 @@ class Gym(gym.Env):
         if self._action_space == 'disc':
             reward = 0.03
         else:
-            reward = (action[0])/(abs(action[1]) + 0.1) - 0.01
+            reward = (action[0])/(abs(action[1]) + 0.1) - 0.05
         
-        if (np.sum(state < 10) > 0.05*self.img_area):
+        if (np.sum(state < 7) > 0.05*self.img_area):
             reward = -100
             done = True
         

@@ -78,7 +78,7 @@ class A2C(Utils):
                  n_step_return = None, lam = None, gamma=0.99, std_min_clip = 0.08, conv_layers = None, max_pool = None,
                  beta = 0.03, bins = None, ordinal=False, act_fun = 'relu', policy_net = 'actor', value_net = 'critic'):
         
-        self.buffer = Rollout()
+        self.buffer = Rollout(conv_layer=conv_layers)
         self.min_batch_size = min_batch_size
         self.net_is_shared = net_is_shared
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'

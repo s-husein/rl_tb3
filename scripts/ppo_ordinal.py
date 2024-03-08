@@ -19,15 +19,14 @@ env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_
 
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             name='ppo_ordinal:256x256_batch_size:64_lam:0.95_gamma:0.99_net_type:sep',
-            act_space=act_space, min_batch_size=2048, ordinal=True,
-            batch_size=256, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.99, lam=0.95,
+            act_space=act_space, min_batch_size=20, ordinal=True,
+            batch_size=10, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.99, lam=0.95,
             hid_layer=[256, 256], std_min_clip=1, eps_clip=0.4, act_fn='elu', bins=bins,
             beta=0.03)
 
 epoch = agent.check_status_file()
-
-for ep in range(epoch, 50001):
-# for ep in range(1):
+# for ep in range(epoch, 50001):
+for ep in range(1):
     except_flag = False
     done = False
     try:
@@ -37,8 +36,8 @@ for ep in range(epoch, 50001):
         continue
     ep_reward = 0
     steps = 0
-    while not done:
-    # for _ in range(30):
+    # while not done:
+    for _ in range(30):
         action = agent.act(state)
         try:
             next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
@@ -46,9 +45,8 @@ for ep in range(epoch, 50001):
         except:
             except_flag = True
             break
-        agent.buffer.add_experience(state, action, next_state, reward, done)
-        print(action)
         print(reward)
+        agent.buffer.add_experience(state, action, next_state, reward, done)
         state = next_state
         ep_reward += reward
         steps += 1

@@ -2,7 +2,8 @@ import numpy as np
 import torch
 
 class Rollout:
-    def __init__(self):
+    def __init__(self, conv_layer = None):
+        self.conv_layer = conv_layer
         self.data_keys = ['states', 'actions', 'next_states', 'rewards', 'dones', 'in_rewards']
         self.reset()
         self.size = 0
@@ -32,6 +33,9 @@ class Rollout:
         return mini_batches
 
     def add_experience(self, state, action, next_state, reward, done, in_rewards = None):
+        if self.conv_layer is None:
+            state = state.flatten()
+            next_state = next_state.flatten()
         experience = (torch.tensor(state), action, torch.tensor(next_state), reward, done, in_rewards)
         for idx, key in enumerate(self.data_keys):
             if experience[idx] is not None:
