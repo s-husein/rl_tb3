@@ -270,10 +270,14 @@ class PPO(A2C):
     def act(self, state):
         state = torch.from_numpy(state).to(device)
         with torch.no_grad():
-            logits = self.old_policy(state).squeeze()
+            if self.conv_layer is None:
+                state = state.flatten()
+                logits = self.old_policy(state)
+            else:
+                logits = self.old_policy(state).squeeze()
+
             if self.net_is_shared:
                 logits = logits[:-1]
-
             if self.act_space == 'disc':
                 dist = Categorical(logits=logits)
             elif self.act_space == 'cont':
