@@ -10,6 +10,7 @@ positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, 
 angles = np.arange(0, 360, 15)
 max_steps = 5000
 bins = 7
+hid_layer = [256, 256, 128]
 
 
 act_space ='discretize'
@@ -21,7 +22,7 @@ agent = PPO(env=env, k_epochs=10, net_is_shared=False,
             name='ppo_ordinal:256x256_batch_size:64_lam:0.95_gamma:0.99_net_type:sep',
             act_space=act_space, min_batch_size=20, ordinal=True,
             batch_size=10, actor_lr=0.00003, critic_lr=0.00007, gamma= 0.99, lam=0.95,
-            hid_layer=[256, 256], std_min_clip=1, eps_clip=0.4, act_fn='elu', bins=bins,
+            hid_layer=hid_layer, std_min_clip=1, eps_clip=0.4, act_fn='elu', bins=bins,
             beta=0.03)
 
 epoch = agent.check_status_file()
