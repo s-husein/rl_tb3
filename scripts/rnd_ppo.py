@@ -18,10 +18,10 @@ pre_steps = 5
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=0.1, conv_layers=conv_layers)
 
-agent = RND_PPO(env, k_epochs=4, batch_size=128, hid_layer=hid_layers, min_batch_size=2048, bins=7, conv_layers=conv_layers,
-                actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.0001, act_space=act_space, name='rnd_ppo',
+agent = RND_PPO(env, k_epochs=4, batch_size=128, hid_layer=hid_layers, min_batch_size=2048, conv_layers=conv_layers,
+                actor_lr=0.00003, critic_lr=0.00007, pred_lr=0.00001, act_space=act_space, name='rnd_ppo',
                 rnd_hid_layer=rnd_hid_layer, std_min_clip=0.1, eps_clip=0.1, beta=0.001,
-                max_pool=max_pool, act_fn='elu', rnd_conv_layer=conv_layers)
+                max_pool=max_pool, act_fn='elu', rnd_conv_layer=conv_layers, ext_coef=3)
 
 epoch = agent.check_status_file()
 
