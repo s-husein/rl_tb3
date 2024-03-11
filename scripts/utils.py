@@ -1,8 +1,11 @@
 from paths import CHECKPOINTFOLDER, STATUSFILE
 import torch
 import os
+import yaml
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
+
 class Utils:
     def __init__(self):
         self.model = None
@@ -35,6 +38,10 @@ class Utils:
         file = open(path, 'w')
         file.close()
         return path
+    
+    def save_config(self, **kwargs,):
+        with open(self.config_file, 'w') as file:
+            yaml.safe_dump(kwargs, file)
 
     def check_status_file(self):
         checkpath = self.read_file(STATUSFILE)

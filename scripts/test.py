@@ -204,11 +204,19 @@
 #         return actions, log_prob
 
 
+from utils import save_config
 
-def expe(**kwargs):
-    print(reward)
-    print(action)
-    print(state)
+positions = [(1, -1), (1, -2)]
 
-reward = 0.99
-expe(reward = reward, action = [1, 2], state = [1, 2, 3, 4])
+angles = (0, 360, 15)
+max_steps = 10000
+act_space = 'cont'
+rnd_hid_layer = hid_layers = [256, 256, 128]
+
+conv_layers = [[16, 5, 1],
+               [32, 3, 1]]
+max_pool = [2, 2]
+pre_steps = 200
+
+save_config(positions = positions, max_stpes=max_steps, act_space=act_space, rnd_hid_layer=rnd_hid_layer,
+            conv_layers=conv_layers, max_pool=max_pool, pre_steps=pre_steps)

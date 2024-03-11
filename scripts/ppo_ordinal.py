@@ -15,7 +15,7 @@ hid_layer = [256, 256, 128]
 
 act_space ='discretize'
 
-env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=0.05, bins=bins)
+env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=0.1, bins=bins)
 
 
 agent = PPO(env=env, k_epochs=10, net_is_shared=False,

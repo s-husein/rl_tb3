@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Categorical, Normal
 import numpy as np
-from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER, STATUSFILE
+from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER, STATUSFILE, CONFIGFOLDER
 from copy import deepcopy
 from dists import MultiCategorical
 from utils import RunningMeanStd
@@ -84,6 +84,8 @@ class A2C(Utils):
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
         self.plot_file = f'{PLOTFOLDER}/{name}_plot.txt'
         self.reward_file = f'{REWARDFOLDER}/{name}_max_reward.txt'
+        self.config_file = f'{CONFIGFOLDER}/{name}_config.yaml'
+        self.create_file(self.config_file)
         self.act_space = act_space
         self.max_rewards = self.check_rewards_file()
         self.n_step_ret = n_step_return
@@ -403,7 +405,7 @@ class RND_PPO(PPO):
                         max_pool=max_pool, bins=bins, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                         actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, name=name, lam=lam,
                         std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma_e, ordinal=ordinal,
-                        act_fn=act_fn, value_net='two_head', )
+                        act_fn=act_fn, value_net='two_head')
         
         self.gamma_i = gamma_i
         self.ext_coef=ext_coef
