@@ -5,6 +5,9 @@ import yaml
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+def conv_params(**kwargs):
+    return kwargs
+
 
 class Utils:
     def __init__(self):
@@ -39,9 +42,9 @@ class Utils:
         file.close()
         return path
     
-    def save_config(self, **kwargs,):
+    def save_config(self, args: dict):
         with open(self.config_file, 'w') as file:
-            yaml.safe_dump(kwargs, file)
+            yaml.safe_dump(args, file)
 
     def check_status_file(self):
         checkpath = self.read_file(STATUSFILE)

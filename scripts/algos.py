@@ -78,7 +78,7 @@ class A2C(Utils):
                  n_step_return = None, lam = None, gamma=0.99, std_min_clip = 0.08, conv_layers = None, max_pool = None,
                  beta = 0.03, bins = None, ordinal=False, act_fun = 'relu', policy_net = 'actor', value_net = 'critic'):
         
-        self.buffer = Rollout(conv_layer=conv_layers)
+        self.buffer = Rollout()
         self.min_batch_size = min_batch_size
         self.net_is_shared = net_is_shared
         self.model_file = f'{MODELFOLDER}/{name}_model.pth'
@@ -128,6 +128,8 @@ class A2C(Utils):
         return action.to(device)
     
     def calc_values(self, states):
+        if self.conv_layer is None:
+            states = states.flatten(start_dim=1)
         if self.net_is_shared:
             values = self.model(states)[:, -1]
         else:
@@ -269,11 +271,14 @@ class PPO(A2C):
             self.old_policy = deepcopy(self.actor)
             assert id(self.old_policy) != id(self.actor)
 
-    def act(self, state):
+    def act(self, state: np.ndarray):
+        if self.conv_layer is not None:
+            state = np.expand_dims(state, 0)
+        else:
+            state = state.flatten()
         state = torch.from_numpy(state).to(device)
         with torch.no_grad():
             if self.conv_layer is None:
-                state = state.flatten()
                 logits = self.old_policy(state)
             else:
                 logits = self.old_policy(state).squeeze()
@@ -313,6 +318,9 @@ class PPO(A2C):
 
     
     def separate_loss(self, states, actions, advs, tar_values, intr_tar_values=None):
+        if self.conv_layer is None:
+            states = states.flatten(start_dim=1)
+
         logits = self.calc_pd(states)
         log_probs, entropy = self.log_probs(logits, actions)
         with torch.no_grad():
@@ -542,8 +550,8 @@ class RND_PPO(PPO):
 
             with torch.no_grad():
                 values = self.calc_values(states)
-                next_values = self.calc_values(next_states) 
-            
+                next_values = self.calc_values(next_states)
+
             ext_val, intr_val = torch.unbind(values, dim=-1)
             ext_nxt_val, intr_nxt_val = torch.unbind(next_values, dim=-1)
 
