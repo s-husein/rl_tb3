@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     cv_img = np.nan_to_num(cv_img)
     cv_img = (cv_img*255).astype(np.uint8)
-    cv_img = cv_img[:268, :]
+    cv_img = cv_img[:250, :]
     cv_img = cv.resize(cv_img, (0, 0), fx = 0.1, fy = 0.1)
     cv.imshow('state', cv_img)
     cv.waitKey()

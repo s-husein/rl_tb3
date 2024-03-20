@@ -93,9 +93,10 @@ class Gym(gym.Env):
     def get_observation(self):
         ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
-        cv_img = cv_img/10.0
+        cv_img = cv_img/9.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
+        cv_img = cv_img[:250, :]
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)
         if self.conv_layers is not None:
             cv_img = np.expand_dims(cv_img, 0)

@@ -59,8 +59,8 @@ print('updating normalization parameters...')
 agent.obs_rms.update(torch.tensor(norm_obs_).to(device))
 
 
-# for ep in range(epoch, 50001):
-for ep in range(1):
+for ep in range(epoch, 50001):
+# for ep in range(1):
     except_flag = False
     done = False
     try:
@@ -71,8 +71,8 @@ for ep in range(1):
     ep_ext_reward = 0.0
     ep_int_reward = 0.0
     steps = 0
-    for i in range(25):
-    # while not done:
+    # for i in range(25):
+    while not done:
         action = agent.act(np.expand_dims(state, 0))
         try:
             next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
