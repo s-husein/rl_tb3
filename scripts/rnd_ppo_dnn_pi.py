@@ -8,11 +8,11 @@ from utils import conv_params
 angles = np.arange(0, 360, 15)
 
 params = conv_params(positions = [(1, -1), (1, -2)],           
-                    k_epochs = 4,
-                    batch_size = 5,
+                    k_epochs = 10,
+                    batch_size = 128,
                     rnd_hid_layer = [512, 256, 128],
                     hid_layer = [512, 256, 128],
-                    min_batch_size = 20,
+                    min_batch_size = 2048,
                     conv_layers = [[16, 5, 1],
                                    [32, 3, 1]],
                     actor_lr = 3e-5,
