@@ -23,7 +23,7 @@ class Gym(gym.Env):
         self.scal_fac = obs_scale_factor
         self.conv_layers = conv_layers
         rospy.init_node("gym_node", anonymous=True)
-        img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 1)
+        img_shape = (int(250*obs_scale_factor), int(640*obs_scale_factor), 1)
         self.img_area = np.prod(img_shape)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
         if self._action_space == 'disc':
