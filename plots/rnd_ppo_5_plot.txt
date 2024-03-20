@@ -1,2 +1,0 @@
-Extrinsic_Rewards,Intrinsic_Rewards
-6.502825851519835,23.76655465364456
