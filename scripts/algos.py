@@ -16,7 +16,11 @@ import os
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 print(f'using {device}')
+assert device == 'cuda', "GPU not connected!"
+
+
 
 
 
@@ -576,20 +580,20 @@ class RND_PPO(PPO):
                         self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_ex_tar_values)
                     else:
                         self.separate_loss(min_states, min_actions, min_advs, min_ex_tar_values, min_intr_tar_values)
-                    if _ == 0:
-                        normz_states = ((min_next_states-self.obs_rms.mean)/self.obs_rms.std).clip(-5, 5)
-                        with torch.no_grad():
-                            targ_feat = self.targ_net(normz_states).detach()
-                        pred_feat = self.pred_net(normz_states)
 
-                        frwd_loss = F.mse_loss(pred_feat, targ_feat, reduction='none').mean(dim=-1)
-                        mask = torch.rand(len(frwd_loss)).to(device)
-                        mask = (mask < self.pred_update).type(torch.FloatTensor).to(device)
-                        frwd_loss = (frwd_loss * mask).sum() / torch.max(mask.sum(), torch.Tensor([1]).to(device))
-                        self.pred_net_optim.zero_grad()
-                        frwd_loss.backward()
-                        torch.nn.utils.clip_grad.clip_grad_norm_(self.pred_net.parameters(), 0.4)
-                        self.pred_net_optim.step()
+                    normz_states = ((min_next_states-self.obs_rms.mean)/self.obs_rms.std).clip(-5, 5)
+                    with torch.no_grad():
+                        targ_feat = self.targ_net(normz_states).detach()
+                    pred_feat = self.pred_net(normz_states)
+
+                    frwd_loss = F.mse_loss(pred_feat, targ_feat, reduction='none').mean(dim=-1)
+                    mask = torch.rand(len(frwd_loss)).to(device)
+                    mask = (mask < self.pred_update).type(torch.FloatTensor).to(device)
+                    frwd_loss = (frwd_loss * mask).sum() / torch.max(mask.sum(), torch.Tensor([1]).to(device))
+                    self.pred_net_optim.zero_grad()
+                    frwd_loss.backward()
+                    torch.nn.utils.clip_grad.clip_grad_norm_(self.pred_net.parameters(), 0.3)
+                    self.pred_net_optim.step()
 
             self.buffer.reset()
             print('trained...')
