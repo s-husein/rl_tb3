@@ -7,7 +7,7 @@ from utils import conv_params
 
 angles = np.arange(0, 360, 15)
 
-params = conv_params(positions = [(1, -1), (1, -2)],           
+params = conv_params(positions = [(-9.5, 3.5)],           
                     k_epochs = 10,
                     batch_size = 256,
                     rnd_hid_layer = [512, 128],
