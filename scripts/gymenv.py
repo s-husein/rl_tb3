@@ -12,7 +12,6 @@ import tf.transformations as tft
 import random
 import math
 
-
 class Gym(gym.Env):
 
     def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1, conv_layers=None):
@@ -22,13 +21,13 @@ class Gym(gym.Env):
         self.ANGLES = angles
         self.scal_fac = obs_scale_factor
         self.conv_layers = conv_layers
-        rospy.init_node("gym_node", anonymous=True)
         img_shape = (int(250*obs_scale_factor), int(640*obs_scale_factor), 1)
         self.img_area = np.prod(img_shape)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
         if self._action_space == 'disc':
             self.action_space = gym.spaces.Discrete(3)
         else: self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), shape = (2,), dtype=np.float32)
+        rospy.init_node("gym_node", anonymous=True)
         self.action_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1, latch=True)
 
     def step(self, _action):
@@ -89,17 +88,33 @@ class Gym(gym.Env):
     def conv_action(self, lin_act, ang_act):
             return np.clip((1/(1 + np.exp(-7*lin_act)))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*ang_act)*0.5, -0.5, 0.5)
 
-
+    def _add_noise(self, img, intensity=15):
+        noise = np.random.randint(-intensity, intensity, img.shape, dtype=np.int8)
+        noisy_img = (img+noise).clip(0, 255).astype(np.uint8)
+        return noisy_img
+    
     def get_observation(self):
+        depth = self._get_depth()
+        rgb = self._get_rgb()
+        return rgb, depth
+
+    def _get_depth(self):
         ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
-        cv_img = cv_img/9.0
+        cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
+        cv_img = cv_img/7.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        cv_img = cv_img[:250, :]
-        cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy=self.scal_fac)
-        if self.conv_layers is not None:
-            cv_img = np.expand_dims(cv_img, 0)
+        cv_img = cv_img[:27, :]
+        cv_img = self._add_noise(cv_img)
+        
+        return cv_img
+    
+    def _get_rgb(self):
+        ros_img = rospy.wait_for_message('/camera/color/image_raw', Image,10)
+        cv_img = CvBridge().imgmsg_to_cv2(ros_img)
+        cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
+        cv_img = cv.cvtColor(cv_img, cv.COLOR_BGR2GRAY)
         return cv_img
 
 

@@ -65,10 +65,10 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         layers.append(nn.Linear(inp, hid_layers[0]))
         layers.append(activation_fun[act_fn])
 
-    try:
-        action_dim = len(env.action_space.sample())
-    except:
-        pass
+    # try:
+    action_dim = len(env.action_space.sample())
+    # except:
+    #     pass
     
     if len(hid_layers) > 1:
         dim_pairs = zip(hid_layers[:-1], hid_layers[1:])
