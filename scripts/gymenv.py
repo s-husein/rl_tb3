@@ -21,7 +21,8 @@ class Gym(gym.Env):
         self.ANGLES = angles
         self.scal_fac = obs_scale_factor
         self.conv_layers = conv_layers
-        img_shape = (int(250*obs_scale_factor), int(640*obs_scale_factor), 1)
+        self.depth_crop = int(360*obs_scale_factor*0.75)
+        img_shape = (self.depth_crop, int(640*obs_scale_factor), 1)
         self.img_area = np.prod(img_shape)
         self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
         if self._action_space == 'disc':
@@ -105,7 +106,7 @@ class Gym(gym.Env):
         cv_img = cv_img/7.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        cv_img = cv_img[:27, :]
+        cv_img = cv_img[:self.depth_crop, :]
         cv_img = self._add_noise(cv_img)
         
         return cv_img

@@ -2,8 +2,11 @@ from nets import make_dnn
 from gymenv import Gym
 import cv2 as cv
 import time
-import multiprocessing as mp
+import threading as thr
+from multiprocessing import Pool
 import rospy
+import rospy.impl
+import rospy.impl.init
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import message_filters as msg_f
@@ -23,12 +26,17 @@ env = Gym(obs_scale_factor=0.1,
 # #                  action_space=action_space, net_type=net_type,
 # #                  max_pool=max_pool)
 
-while True:
-    rgb, depth = env.get_observation()
+# rgb, depth = env.get_observation()
 
-    cv.imshow('x', rgb)
-    cv.imshow('y', depth)
-    cv.waitKey(1)
+# cv.imshow('x', depth)
+# cv.waitKey()
+# cv.destroyAllWindows()
+
+rgb, depth = env.get_observation()
+
+print(rgb.shape)
+print(depth.shape)
+
 
 
 
