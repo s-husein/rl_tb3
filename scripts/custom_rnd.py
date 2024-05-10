@@ -2,6 +2,7 @@ import torch.nn as nn
 from gymenv import Gym
 import torch
 import numpy as np
+from nets import make_dnn
 
 
 class NeuralNet(nn.Module):
@@ -31,14 +32,19 @@ class NeuralNet(nn.Module):
 
 
 policy = NeuralNet('policy')
+values = NeuralNet('value')
+
+pred_net = None
+targ_net = None
+
 env = Gym(action_space='cont', obs_scale_factor=0.1, conv_layers=True)
+
 
 _, depth = env.get_observation()
 
 depth = np.expand_dims(depth, (0, 1))
 
 print(depth.shape)
-
 
 y = torch.tensor([0.25]).unsqueeze(0)
 depth_ = torch.tensor(depth/255.0, dtype=torch.float32)

@@ -134,6 +134,7 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/set_model_state', SetModelState)(bot)
     
     def render(self):
-        state = self.get_observation()
-        cv.imshow('state', state.squeeze())
+        rgb, depth = self.get_observation()
+        cv.imshow('depth', depth)
+        cv.imshow('rgb', rgb)
         cv.waitKey(1)
