@@ -22,14 +22,17 @@ class Gym(gym.Env):
         self.scal_fac = obs_scale_factor
         self.conv_layers = conv_layers
         self.depth_crop = int(360*obs_scale_factor*0.75)
-        img_shape = (self.depth_crop, int(640*obs_scale_factor), 1)
-        self.img_area = np.prod(img_shape)
-        self.observation_space = gym.spaces.Box(0, 255, shape=img_shape, dtype=np.uint8) #a grayscale depth image
+        depth_img_shape = (self.depth_crop, int(640*obs_scale_factor), 1)
+        rgb_img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 3)
+        self.img_area = np.prod(depth_img_shape)
+        self.observation_space = gym.spaces.Tuple((gym.spaces.Box(0, 255, shape=depth_img_shape, dtype=np.uint8),
+                                                 gym.spaces.Box(0, 255, shape=rgb_img_shape, dtype=np.uint8))) #a grayscale depth image
         if self._action_space == 'disc':
             self.action_space = gym.spaces.Discrete(3)
         else: self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), shape = (2,), dtype=np.float32)
         rospy.init_node("gym_node", anonymous=True)
         self.action_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1, latch=True)
+        
 
     def step(self, _action):
         if self._action_space=='disc':
@@ -89,7 +92,7 @@ class Gym(gym.Env):
     def conv_action(self, lin_act, ang_act):
             return np.clip((1/(1 + np.exp(-7*lin_act)))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*ang_act)*0.5, -0.5, 0.5)
 
-    def _add_noise(self, img, intensity=15):
+    def _add_noise(self, img, intensity=10):
         noise = np.random.randint(-intensity, intensity, img.shape, dtype=np.int8)
         noisy_img = (img+noise).clip(0, 255).astype(np.uint8)
         return noisy_img
@@ -115,7 +118,8 @@ class Gym(gym.Env):
         ros_img = rospy.wait_for_message('/camera/color/image_raw', Image,10)
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
-        cv_img = cv.cvtColor(cv_img, cv.COLOR_BGR2GRAY)
+        # cv_img = cv.cvtColor(cv_img, cv.COLOR_BGR2GRAY)
+        cv_img = np.transpose(cv_img, (2, 0, 1))
         return cv_img
 
 

@@ -29,15 +29,18 @@ class Ordinal(nn.Module):
 
 
 def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='shared', bins=None,
-             act_fn='relu', ordinal=False, conv_layers=None, max_pool = None):
+             act_fn='relu', ordinal=False, conv_layers=None, max_pool = None, img_type=''):
     
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh(), 'elu': nn.ELU()}
-    inp_shape = env.observation_space.shape
+    state = env.observation_space.sample()
+    ind = 0
+    if img_type == 'rgb':
+        ind = 1
+    inp_shape = state[ind].shape
 
     if conv_layers is not None:
-        in_chann = 1
-        inp_h, inp_w = inp_shape[0], inp_shape[1]
+        inp_h, inp_w, in_chann = inp_shape
         for conv in conv_layers:
             out_chann, filter_size, stride = conv
             layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
