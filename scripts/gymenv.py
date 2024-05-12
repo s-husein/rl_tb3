@@ -31,12 +31,10 @@ class Gym(gym.Env):
         if self._action_space == 'disc':
             self.action_space = gym.spaces.Discrete(3)
         else: self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), shape = (2,), dtype=np.float32)
-        rospy.init_node("gym_node", anonymous=True)
+        rospy.init_node("gym_node")
         self.action_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1, latch=True)
-        rospy.Subscriber('/camera/depth/image_rect_raw', Image, self._get_depth)
-        rospy.Subscriber('/camera/color/image_raw', Image, self._get_rgb)
-        self.depth_img = None
-        self.rgb_img = None
+        # self.ds = rospy.Subscriber('/camera/depth/image_rect_raw', Image, self._get_depth, queue_size=1)
+        # self.rs = rospy.Subscriber('/camera/color/image_raw', Image, self._get_rgb, queue_size=1)
 
     def step(self, _action):
         if self._action_space=='disc':
@@ -49,19 +47,18 @@ class Gym(gym.Env):
             action = self.conv_action(encode[_action[0]], encode[_action[1]])
             self.act_c(action)
         observation = self.get_observation()
-        reward, done = self.get_reward(action, observation)
-        observation = ((observation/255.0)-0.5)/0.5
+        reward, done = self.get_reward(action, observation[0])
+        observation[0] = self._add_noise(observation[0])
         return observation, reward, done, False, {}
 
     def reset(self, seed=None):
         super().reset(seed=seed)
-        rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         pos = random.choice(self.POS)
         angle = random.choice(self.ANGLES)
-
+        rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        # observation = ((observation/255.0)-0.5)/0.5
+        observation[0] = self._add_noise(observation[0])
         return observation, {}
     
     def get_reward(self, action, state):#contin.. action space rewards
@@ -71,10 +68,10 @@ class Gym(gym.Env):
             reward = 0.03
         else:
             reward = (action[0])/(abs(action[1]) + 0.1) - 0.05
-        if (np.sum(state < 7) > 0.05*self.img_area):
+        if (np.sum(state < 9) > 0.05*self.img_area):
             reward = -100
             done = True
-        return reward, done
+        return round(reward, 3), done
 
     def act_d(self, action): #for discrete action space
         act = Twist()
@@ -101,27 +98,27 @@ class Gym(gym.Env):
         return noisy_img
     
     def get_observation(self):
-        while True:
-            if self.depth_img is not None and self.rgb_img is not None:
-                return self.depth_img, self.rgb_img
+        return [self._get_depth(), self._get_rgb()]
+        # while True:
+        #     if self.depth_img is not None and self.rgb_img is not None:
+        #         return self.depth_img, self.rgb_img
 
-    def _get_depth(self, ros_img):
-        cv_img = CvBridge().imgmsg_to_cv2(ros_img)
+    def _get_depth(self):
+        cv_img = CvBridge().imgmsg_to_cv2(rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10))
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
         cv_img = cv_img/7.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
         cv_img = cv_img[:self.depth_crop, :]
-        cv_img = self._add_noise(cv_img)
-        cv_img = np.expand_dims(cv_img, 2)
-        self.depth_img = cv_img
+        cv_img = cv_img = np.expand_dims(cv_img, 2)
+        return cv_img
     
-    def _get_rgb(self, ros_img):
-        cv_img = CvBridge().imgmsg_to_cv2(ros_img)
+    def _get_rgb(self):
+        cv_img = CvBridge().imgmsg_to_cv2(rospy.wait_for_message('/camera/color/image_raw', Image, 10))
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
         # cv_img = cv.cvtColor(cv_img, cv.COLOR_BGR2GRAY)
         # cv_img = np.transpose(cv_img, (2, 0, 1))
-        self.rgb_img = cv_img
+        return cv_img
 
     def set_model_state(self, pos, angle):
         quat = tft.quaternion_from_euler(0, 0, angle*(math.pi/180))

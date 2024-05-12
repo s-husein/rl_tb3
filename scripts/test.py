@@ -22,11 +22,12 @@ env = Gym(obs_scale_factor=0.1,
            action_space=action_space, conv_layers=conv_layers)
 
 
-while True:
-    d, r = env.get_observation()
-    cv.imshow('d', d)
-    cv.imshow('r',r)
-    cv.waitKey(1)
+# while True:
+d, r = env.reset()[0]
+cv.imshow('d', d)
+cv.imshow('r',r)
+cv.waitKey()
+cv.destroyAllWindows()
 
 
 # model = make_dnn(env, hid_layers=hid_layers, conv_layers=conv_layers,

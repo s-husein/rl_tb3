@@ -22,8 +22,6 @@ assert device == 'cuda', "GPU not connected!"
 
 
 
-
-
 class REINFORCE(Utils):
     def __init__(self, env: Env, name='reinforce', hid_layer = [128, 128], net_type='shared', lr = 0.00003, act_space = 'disc'):
         self.buffer = Rollout()
@@ -77,10 +75,9 @@ class REINFORCE(Utils):
 
 
 class A2C(Utils):
-    def __init__(self, env: Env, name='a2c', min_batch_size=128, net_is_shared = True, actor_lr = 0.00003,
+    def __init__(self, name='a2c', min_batch_size=128, net_is_shared = True, actor_lr = 0.00003,
                  critic_lr = 0.0003, act_space = 'disc', n_step_return = None, lam = None, gamma=0.99, 
-                 std_min_clip = 0.08, conv_layers = None, max_pool = None, beta = 0.03,
-                 actor=None, critic=None):
+                 std_min_clip = 0.08, beta = 0.03, actor=None, critic=None):
         
         self.buffer = Rollout()
         self.min_batch_size = min_batch_size
@@ -157,7 +154,7 @@ class A2C(Utils):
             futureadv = delta + self.gamma*self.lam*futureadv*not_dones[t]
             advantage[t] = futureadv
         target_values = (advantage + values).to(device)
-        advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
+        # advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
         return advantage, target_values
     
     def adv_nstep(self, values, next_values, n):
@@ -251,18 +248,19 @@ class A2C(Utils):
 
 
 class PPO(A2C):
-    def __init__(self, env: Env, k_epochs, batch_size = 256, min_batch_size=2048, net_is_shared = False,
+    def __init__(self, k_epochs, batch_size = 256, min_batch_size=2048, net_is_shared = False, conv_layer=False,
                  actor_lr=0.0003, critic_lr = 0.001, act_space = 'disc', name='ppo', lam=0.95,
                  std_min_clip = 0.07, beta=0.01, eps_clip=0.1, gamma=0.99, actor=None, critic=None):
         
-        super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
+        super(PPO, self).__init__(name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
                                   actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space,
-                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, actor=actor, critic=critic)
+                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma,
+                                  actor=actor, critic=critic)
 
         self.batch_size = batch_size
         self.k_epochs = k_epochs
         self.eps_clip = eps_clip
-
+        self.conv_layer = conv_layer
         if self.net_is_shared:
             self.old_policy = deepcopy(self.model)
             assert id(self.old_policy) != id(self.model)
@@ -272,7 +270,7 @@ class PPO(A2C):
         print(f'old policy: {self.old_policy}')
 
     def act(self, state: np.ndarray):
-        if self.conv_layer is not None:
+        if self.conv_layer:
             state = np.expand_dims(state, 0)
         else:
             state = state.flatten()
@@ -375,10 +373,12 @@ class PPO(A2C):
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
             next_states = torch.stack(self.buffer.traj['next_states']).to(device)
+
             with torch.no_grad():
                 values = self.calc_values(states)
                 next_values = self.calc_values(next_states)
             advs, tar_values = self.calc_adv(values, next_values)
+
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
                 for mini_batch in mini_batches:                    
