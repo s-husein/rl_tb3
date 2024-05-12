@@ -77,10 +77,10 @@ class REINFORCE(Utils):
 
 
 class A2C(Utils):
-    def __init__(self, env: Env, name='a2c', min_batch_size=128, hid_layer = [128, 128],
-                 net_is_shared = True, actor_lr = 0.00003, critic_lr = 0.0003, act_space = 'disc',
-                 n_step_return = None, lam = None, gamma=0.99, std_min_clip = 0.08, conv_layers = None, max_pool = None,
-                 beta = 0.03, bins = None, ordinal=False, act_fun = 'relu', policy_net = 'actor', value_net = 'critic'):
+    def __init__(self, env: Env, name='a2c', min_batch_size=128, net_is_shared = True, actor_lr = 0.00003,
+                 critic_lr = 0.0003, act_space = 'disc', n_step_return = None, lam = None, gamma=0.99, 
+                 std_min_clip = 0.08, conv_layers = None, max_pool = None, beta = 0.03,
+                 actor=None, critic=None):
         
         self.buffer = Rollout()
         self.min_batch_size = min_batch_size
@@ -97,18 +97,16 @@ class A2C(Utils):
         self.gamma = gamma
         self.std_min_clip = std_min_clip
         self.beta = beta
-        self.conv_layer = conv_layers
+        if actor is None and critic is None:
+            raise Exception("Define the actor and critic models")
         if self.net_is_shared:
-            self.model = make_dnn(env, hid_layers=hid_layer, net_type='shared', action_space=act_space,
-                                  bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
+            self.model = actor.to(device)
             self.optim = Adam(self.model.parameters(), lr = actor_lr, eps = 1e-8)
             self.model.train()
             print(self.model)
         else:
-            self.actor = make_dnn(env, net_type=policy_net, hid_layers=hid_layer, action_space=act_space,
-                                  bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
-            self.critic = make_dnn(env, net_type=value_net, hid_layers=hid_layer, action_space=act_space,
-                                   bins=bins, ordinal=ordinal, act_fn=act_fun, conv_layers=conv_layers, max_pool=max_pool).to(device)
+            self.actor = actor.to(device)
+            self.critic = critic.to(device)
             self.act_optim = Adam(self.actor.parameters(), lr = actor_lr, eps = 1e-5)
             self.crit_optim = Adam(self.critic.parameters(), lr = critic_lr, eps = 1e-5)
             self.actor.train()
@@ -253,27 +251,25 @@ class A2C(Utils):
 
 
 class PPO(A2C):
-    def __init__(self, env: Env, k_epochs, batch_size = 256, hid_layer = [256, 256], conv_layers = None, max_pool = None, bins=None,
-                 min_batch_size=2048, net_is_shared = False, actor_lr=0.0003, critic_lr = 0.001,
-                 act_space = 'disc', name='ppo', lam=0.95, std_min_clip = 0.07, ordinal=False,
-                 beta=0.01, eps_clip=0.1, gamma=0.99, act_fn = 'relu', policy_net = 'actor', value_net = 'critic'):
+    def __init__(self, env: Env, k_epochs, batch_size = 256, min_batch_size=2048, net_is_shared = False,
+                 actor_lr=0.0003, critic_lr = 0.001, act_space = 'disc', name='ppo', lam=0.95,
+                 std_min_clip = 0.07, beta=0.01, eps_clip=0.1, gamma=0.99, actor=None, critic=None):
         
         super(PPO, self).__init__(env= env, name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
-                                  actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, bins=bins, hid_layer=hid_layer,
-                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, act_fun=act_fn, ordinal=ordinal,
-                                  conv_layers = conv_layers, max_pool=max_pool,policy_net=policy_net, value_net=value_net)
-        
+                                  actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space,
+                                  lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma, actor=actor, critic=critic)
 
         self.batch_size = batch_size
         self.k_epochs = k_epochs
         self.eps_clip = eps_clip
 
-        if  self.net_is_shared:
+        if self.net_is_shared:
             self.old_policy = deepcopy(self.model)
             assert id(self.old_policy) != id(self.model)
         else:
             self.old_policy = deepcopy(self.actor)
             assert id(self.old_policy) != id(self.actor)
+        print(f'old policy: {self.old_policy}')
 
     def act(self, state: np.ndarray):
         if self.conv_layer is not None:

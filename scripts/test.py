@@ -20,11 +20,20 @@ max_pool = [2, 2]
 
 env = Gym(obs_scale_factor=0.1,
            action_space=action_space, conv_layers=conv_layers)
-model = make_dnn(env, hid_layers=hid_layers, conv_layers=conv_layers,
-                 action_space=action_space, net_type=net_type,
-                 max_pool=max_pool, img_type='rgb')
 
-print(model)
+
+while True:
+    d, r = env.get_observation()
+    cv.imshow('d', d)
+    cv.imshow('r',r)
+    cv.waitKey(1)
+
+
+# model = make_dnn(env, hid_layers=hid_layers, conv_layers=conv_layers,
+#                  action_space=action_space, net_type=net_type,
+#                  max_pool=max_pool, img_type='rgb')
+
+# print(model)
 
 # state = env.observation_space.sample()
 
@@ -41,13 +50,7 @@ print(model)
 # depth_img = None
 
 
-# def depth_cb(ros_img):
-#     global depth_img
-#     depth_img = CvBridge().imgmsg_to_cv2(ros_img)
 
-# def rgb_cb(ros_img):
-#     global rgb_img
-#     rgb_img = CvBridge().imgmsg_to_cv2(ros_img)
 
 # dpth_s = rospy.Subscriber('/camera/depth/image_rect_raw', Image, depth_cb)
 # rgb_s = rospy.Subscriber('/camera/color/image_raw', Image, rgb_cb)
@@ -63,21 +66,21 @@ print(model)
 
 
 
-rgb, depth = env.get_observation()
+# rgb, depth = env.get_observation()
 
-# cv.imshow('x', rgb)
-# cv.waitKey()
-# cv.destroyAllWindows()
-import torch
-rgb_ = torch.tensor(rgb/255.0, dtype = torch.float32).unsqueeze(0)
-print(rgb_.shape)
+# # cv.imshow('x', rgb)
+# # cv.waitKey()
+# # cv.destroyAllWindows()
+# import torch
+# rgb_ = torch.tensor(rgb/255.0, dtype = torch.float32).unsqueeze(0)
+# print(rgb_.shape)
 
-out = model(rgb_)
+# out = model(rgb_)
 
-print(out)
+# print(out)
 
-print(rgb.shape)
-print(depth.shape)
+# print(rgb.shape)
+# print(depth.shape)
 
 
 

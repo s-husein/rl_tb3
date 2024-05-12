@@ -11,6 +11,7 @@ import numpy as np
 import tf.transformations as tft
 import random
 import math
+from time import sleep
 
 class Gym(gym.Env):
 
@@ -32,7 +33,10 @@ class Gym(gym.Env):
         else: self.action_space = gym.spaces.Box(low=np.array([-1, -1]), high=np.array([1, 1]), shape = (2,), dtype=np.float32)
         rospy.init_node("gym_node", anonymous=True)
         self.action_pub = rospy.Publisher('cmd_vel', Twist, queue_size=1, latch=True)
-        
+        rospy.Subscriber('/camera/depth/image_rect_raw', Image, self._get_depth)
+        rospy.Subscriber('/camera/color/image_raw', Image, self._get_rgb)
+        self.depth_img = None
+        self.rgb_img = None
 
     def step(self, _action):
         if self._action_space=='disc':
@@ -46,31 +50,30 @@ class Gym(gym.Env):
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation)
-        return (observation/255.0).astype(np.float32), reward, done, False, {}
+        observation = ((observation/255.0)-0.5)/0.5
+        return observation, reward, done, False, {}
 
     def reset(self, seed=None):
         super().reset(seed=seed)
+        rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         pos = random.choice(self.POS)
         angle = random.choice(self.ANGLES)
 
-        rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()        
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        return (observation/255.0).astype(np.float32), {}
+        # observation = ((observation/255.0)-0.5)/0.5
+        return observation, {}
     
     def get_reward(self, action, state):#contin.. action space rewards
         done = False
         reward = 0
-
         if self._action_space == 'disc':
             reward = 0.03
         else:
             reward = (action[0])/(abs(action[1]) + 0.1) - 0.05
-        
         if (np.sum(state < 7) > 0.05*self.img_area):
             reward = -100
             done = True
-        
         return reward, done
 
     def act_d(self, action): #for discrete action space
@@ -98,12 +101,11 @@ class Gym(gym.Env):
         return noisy_img
     
     def get_observation(self):
-        depth = self._get_depth()
-        rgb = self._get_rgb()
-        return rgb, depth
+        while True:
+            if self.depth_img is not None and self.rgb_img is not None:
+                return self.depth_img, self.rgb_img
 
-    def _get_depth(self):
-        ros_img = rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10)
+    def _get_depth(self, ros_img):
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
         cv_img = cv_img/7.0
@@ -111,17 +113,15 @@ class Gym(gym.Env):
         cv_img = np.nan_to_num(cv_img, nan=0.0)
         cv_img = cv_img[:self.depth_crop, :]
         cv_img = self._add_noise(cv_img)
-        
-        return cv_img
+        cv_img = np.expand_dims(cv_img, 2)
+        self.depth_img = cv_img
     
-    def _get_rgb(self):
-        ros_img = rospy.wait_for_message('/camera/color/image_raw', Image,10)
+    def _get_rgb(self, ros_img):
         cv_img = CvBridge().imgmsg_to_cv2(ros_img)
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
         # cv_img = cv.cvtColor(cv_img, cv.COLOR_BGR2GRAY)
-        cv_img = np.transpose(cv_img, (2, 0, 1))
-        return cv_img
-
+        # cv_img = np.transpose(cv_img, (2, 0, 1))
+        self.rgb_img = cv_img
 
     def set_model_state(self, pos, angle):
         quat = tft.quaternion_from_euler(0, 0, angle*(math.pi/180))

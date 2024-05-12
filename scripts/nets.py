@@ -28,7 +28,7 @@ class Ordinal(nn.Module):
         return torch.sum(torch.log(iden*(logits) + inv_iden*(1-logits)), dim=-1).squeeze()
 
 
-def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='shared', bins=None,
+def make_dnn(env: Env, hid_layers = [64, 64], action_space=None, net_type='shared', bins=None,
              act_fn='relu', ordinal=False, conv_layers=None, max_pool = None, img_type=''):
     
     layers = []
@@ -85,6 +85,8 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         out = 2*action_dim
     elif action_space == 'discretize':
         out = action_dim*bins
+    else:
+        out = 0
                 
     net_types = {'actor': out, 'critic': 1, 'shared': out+1, 'two_head': 2}
     if net_type in net_types.keys():
@@ -93,5 +95,7 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space='disc', net_type='sha
         
         if action_space == 'discretize' and net_type == 'actor':
             layers.append(Ordinal(action_dim, ordinal))
+    elif net_type == 'rnd':
+        layers = layers[:-1]
 
     return nn.Sequential(*layers)
