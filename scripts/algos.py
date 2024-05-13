@@ -390,7 +390,7 @@ class PPO(A2C):
                     if self.net_is_shared:
                         self.shared_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)
                     else:
-                        self.separate_loss(min_states, min_actions, min_advs, min_tar_values)                    
+                        self.separate_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)                    
             self.buffer.reset()
             print('trained...')
             if self.net_is_shared:

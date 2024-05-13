@@ -1,5 +1,6 @@
 import numpy as np
 import torch
+import random
 
 class Rollout:
     def __init__(self):
@@ -28,7 +29,7 @@ class Rollout:
             mini_batches.append(indices[ind: ind+mb_size])
             ind += mb_size
         mini_batches.append(indices[ind:])
-
+        # random.shuffle(mini_batches)
         return mini_batches
 
     def add_experience(self, state, action, next_state, reward, done):
@@ -37,4 +38,3 @@ class Rollout:
             if experience[idx] is not None:
                 self.traj[key].append(experience[idx])
         self.size += 1
-

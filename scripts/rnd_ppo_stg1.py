@@ -29,7 +29,7 @@ std_min_clip =  0.1
 eps_clip= 0.2
 beta = 0.1
 max_pool = [2, 2]
-max_steps = 2000
+max_steps = 5000
 obs_scale_factor = 0.1
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=obs_scale_factor, conv_layers=True)
