@@ -29,7 +29,7 @@ class Rollout:
             mini_batches.append(indices[ind: ind+mb_size])
             ind += mb_size
         mini_batches.append(indices[ind:])
-        # random.shuffle(mini_batches)
+        random.shuffle(mini_batches)
         return mini_batches
 
     def add_experience(self, state, action, next_state, reward, done):

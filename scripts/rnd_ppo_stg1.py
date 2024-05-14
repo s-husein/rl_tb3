@@ -13,19 +13,19 @@ positions = [(2, 2.5), (-2.5, 2.5), (-2.5, -0.5),
 angles = np.arange(0, 360, 15)
 k_epochs = 10
 batch_size = 128
-pi_hid_layers = [128, 128]
+pi_hid_layers = [128, 64]
 min_batch_size =2048
-pi_conv_layers = [[16, 3, 2],
-                  [32, 1, 1]]
-episodes = 3000
+pi_conv_layers = [[16, 3, 3],
+                  [32, 3, 1]]
+episodes = 10000
 lam = 0.95
 gamma = 0.99
-actor_lr = 3e-6
+actor_lr = 3e-5
 critic_lr = 7e-5
 pred_lr= 1e-5
 act_space = 'cont'
 name = 'rnd_ppo_stg_1'
-std_min_clip =  0.1
+std_min_clip =  0.4
 eps_clip= 0.2
 beta = 0.1
 max_pool = [2, 2]
