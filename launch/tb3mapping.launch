@@ -16,8 +16,8 @@
 
   <!-- Arguments -->
   
-  <arg name="open_rviz" default="true"/>
-  <arg name="rtabmap_viz" default="true"/>
+  <arg name="open_rviz" default="false"/>
+  <arg name="rtabmap_viz" default="false"/>
 
   <arg name="with_camera" default="true"/>
   <arg name="localization" default="false"/>
@@ -40,6 +40,7 @@
       <param name="subscribe_depth" type="bool" value="true"/>
       <param name="subscribe_rgbd" type="bool" value="false"/>
       <param name="subscribe_scan"      type="bool"   value="true"/>
+      <param name="subscribe_odom_info"      type="bool"   value="false"/>
       <param name="approx_sync"         type="bool"   value="true"/>
 
 
@@ -47,19 +48,25 @@
       <remap from="rgb/image"         to="/camera/color/image_raw"/>
       <remap from="depth/image"       to="/camera/depth/image_rect_raw"/>
       <remap from="rgb/camera_info"   to="/camera/color/camera_info"/>
-      <remap from="scan"            to="/scan"/>
       <remap from="odom"            to="/odom"/>
+      <remap from="scan"            to="/scan"/>
 
 
       <!-- output -->
       <remap from="grid_map" to="/map"/>
 
       <!-- RTAB-Map's parameters -->
-      <param name= "FAST/Gpu"                    type="bool" value="true"/>
-      <param name="Reg/Strategy"                 type="string" value="5"/>
+      <param name="FAST/Gpu"                    type="bool" value="true"/>
+      <param name="Reg/Strategy"                 type="string" value="2"/>
       <param name="Reg/Force3DoF"                type="string" value="true"/>
-      <param name="GridGlobal/MinSize"           type="string" value="10"/>
+      <param name="GridGlobal/MinSize"           type="int" value="10"/>
       <param name="queue_size"                   type="int"    value="200"/>
+      <param name="Grid/CellSize"                   type="double"    value="0.1"/>
+      <param name="Grid/3D"                   type="bool"    value="false"/>
+      <param name="Grid/Sensor"              type="int" value="0"/>
+      <param name="Rtabmap/DetectionRate"              type="int" value="5"/>
+
+
 
       <!-- localization mode -->
       <param     if="$(arg localization)" name="Mem/IncrementalMemory" type="string" value="false"/>

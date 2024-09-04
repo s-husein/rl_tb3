@@ -29,7 +29,7 @@ class Ordinal(nn.Module):
 
 
 def make_dnn(env: Env, hid_layers = [64, 64], action_space=None, net_type='shared', bins=None,
-             act_fn='relu', ordinal=False, conv_layers=None, max_pool = None, img_type=''):
+             act_fn='relu', ordinal=False, conv_layers=None, batch_norm=False, max_pool = None, img_type=''):
     
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh(), 'elu': nn.ELU()}
@@ -44,21 +44,24 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space=None, net_type='share
         for conv in conv_layers:
             out_chann, filter_size, stride = conv
             layers.append(nn.Conv2d(in_chann, out_chann, filter_size, stride))
+            if batch_norm:
+                layers.append(nn.BatchNorm2d(out_chann))
             layers.append(activation_fun[act_fn])
 
             out_h = (inp_h - filter_size)//stride + 1
             out_w = (inp_w - filter_size)//stride + 1
             inp_h = out_h
             inp_w = out_w
+            print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
+        if max_pool is not None:
+            layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
+            out_h = (inp_h - max_pool[0])//max_pool[1] + 1
+            out_w = (inp_w - max_pool[0])//max_pool[1] + 1
+            inp_h = out_h
+            inp_w = out_w
+            print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
 
-            if max_pool is not None:
-                layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
-                out_h = (inp_h - max_pool[0])//max_pool[1] + 1
-                out_w = (inp_w - max_pool[0])//max_pool[1] + 1
-                inp_h = out_h
-                inp_w = out_w
             in_chann = out_chann
-
         layers.append(nn.Flatten())
         layers.append(nn.Linear(inp_h*inp_w*in_chann, hid_layers[0]))
         layers.append(activation_fun[act_fn])

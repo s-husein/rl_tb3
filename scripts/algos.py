@@ -12,6 +12,7 @@ from copy import deepcopy
 from dists import MultiCategorical
 from utils import RunningMeanStd
 import os
+import random
 
 
 
@@ -256,7 +257,8 @@ class PPO(A2C):
                                   actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space,
                                   lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma,
                                   actor=actor, critic=critic)
-
+        
+        self.new_rewards = 5000
         self.batch_size = batch_size
         self.k_epochs = k_epochs
         self.eps_clip = eps_clip
@@ -293,7 +295,7 @@ class PPO(A2C):
                 dist = MultiCategorical(probs=logits)
             
             action = dist.sample()
-        return action.to(device)
+        return action.to(device).clip(-1, 1)
     
     def shared_loss(self, states, actions, values, advs, tar_values):
         logits = self.calc_pd(states)
@@ -369,6 +371,17 @@ class PPO(A2C):
 
     def train(self):
         if self.buffer.size > self.min_batch_size:
+            # aug = random.choice([True, False])
+            # if aug:
+            #     self.buffer.augment()
+            rewards = sum(self.buffer.traj['rewards'])
+            if rewards <= self.new_rewards:
+                self.beta += 0.01
+            else:
+                self.beta -= (0.01 * (rewards/self.new_rewards))
+            self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
+            print(self.beta)
+
             print('training...')
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
@@ -392,7 +405,7 @@ class PPO(A2C):
                     else:
                         self.separate_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)                    
             self.buffer.reset()
-            print('trained...')
+            print('done...')
             if self.net_is_shared:
                 self.old_policy.load_state_dict(self.model.state_dict())
             else:

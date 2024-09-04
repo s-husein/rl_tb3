@@ -67,8 +67,8 @@ class Gym(gym.Env):
         if self._action_space == 'disc':
             reward = 0.03
         else:
-            reward = (action[0])/(abs(action[1]) + 0.1) - 0.05
-        if (np.sum(state < 9) > 0.05*self.img_area):
+            reward = (action[0])/(abs(action[1]) + 0.1)
+        if (np.sum(state < 7) > 0.05*self.img_area):
             reward = -100
             done = True
         return round(reward, 3), done
@@ -92,7 +92,7 @@ class Gym(gym.Env):
     def conv_action(self, lin_act, ang_act):
             return np.clip((1/(1 + np.exp(-7*lin_act)))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*ang_act)*0.5, -0.5, 0.5)
 
-    def _add_noise(self, img, intensity=10):
+    def _add_noise(self, img, intensity=15):
         noise = np.random.randint(-intensity, intensity, img.shape, dtype=np.int8)
         noisy_img = (img+noise).clip(0, 255).astype(np.uint8)
         return noisy_img
@@ -106,7 +106,7 @@ class Gym(gym.Env):
     def _get_depth(self):
         cv_img = CvBridge().imgmsg_to_cv2(rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10))
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
-        cv_img = cv_img/7.0
+        cv_img = cv_img/8.0
         cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
         cv_img = cv_img[:self.depth_crop, :]

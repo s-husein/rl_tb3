@@ -1,12 +1,12 @@
 <launch>
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find rl_tb3)/urdf/tb3.urdf.xacro"/>
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find rl_tb3)/worlds/maze_0.world"/>
+    <arg name="world_name" value="$(find rl_tb3)/worlds/fyp_2.world"/>
     <arg name="headless" value="true"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
     </include>
     <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_pub"/>
     <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_pub"/>
-    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model fyp_bot -x -0.5 -y 0.5 -z 0.0 -param robot_description" />
+    <node pkg="gazebo_ros" type="spawn_model" name="spawn_urdf"  args="-urdf -model fyp_bot -x 1.0 -y 1.0 -z 0.0 -param robot_description" />
 </launch>

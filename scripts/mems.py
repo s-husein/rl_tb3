@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import random
 
+
 class Rollout:
     def __init__(self):
         self.data_keys = ['states', 'actions', 'next_states', 'rewards', 'dones']
@@ -29,7 +30,7 @@ class Rollout:
             mini_batches.append(indices[ind: ind+mb_size])
             ind += mb_size
         mini_batches.append(indices[ind:])
-        # random.shuffle(mini_batches)
+        random.shuffle(mini_batches)
         return mini_batches
 
     def add_experience(self, state, action, next_state, reward, done):
@@ -38,3 +39,12 @@ class Rollout:
             if experience[idx] is not None:
                 self.traj[key].append(experience[idx])
         self.size += 1
+
+    def augment(self):
+        len = self.size
+        inv = torch.tensor([1, -1]).to('cuda')
+        for i in range(len):
+            self.traj['states'][i] = self.traj['states'][i].flip(2)
+            self.traj['actions'][i] = self.traj['actions'][i]*inv
+            self.traj['next_states'][i] = self.traj['next_states'][i].flip(2)
+        print('augmented')

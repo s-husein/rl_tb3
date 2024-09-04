@@ -4,32 +4,32 @@ import numpy as np
 from nets import make_dnn
 import torch
 import cv2 as cv
-import rospy
 
 pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-positions = [(2, 2.5), (-2.5, 2.5), (-2.5, -0.5),
-             (-2, -2.5), (2.5, 0.5), (2.5, -2.5), (1.5, -1.5)]
-angles = np.arange(0, 360, 15)
+positions = [(3, 3)]
+# angles = np.arange(0, 360, 45)
+angles = [225, 270, 180, 135]
 k_epochs = 10
-batch_size = 128
-pi_hid_layers = [128, 128]
-min_batch_size =2048
-pi_conv_layers = [[16, 3, 2],
-                  [32, 1, 1]]
-episodes = 3000
+batch_size = 512
+pi_hid_layers = [512, 256]
+min_batch_size = 4096
+pi_conv_layers = [[16, 5, 1],
+                  [32, 3, 1],
+                  [64, 3, 1]]
+episodes = 10000
 lam = 0.95
 gamma = 0.99
-actor_lr = 3e-6
+actor_lr = 3e-5
 critic_lr = 7e-5
 pred_lr= 1e-5
 act_space = 'cont'
-name = 'rnd_ppo_stg_1'
+name = 'rnd_ppo_stg1_pc'
 std_min_clip =  0.1
 eps_clip= 0.2
-beta = 0.1
+beta = 0.07
 max_pool = [2, 2]
-max_steps = 5000
+max_steps = 15000
 obs_scale_factor = 0.1
 
 env = Gym(action_space=act_space, positions=positions, angles=angles, obs_scale_factor=obs_scale_factor, conv_layers=True)
@@ -54,7 +54,7 @@ for ep in range(epoch, episodes+1):
         continue
     ep_ext_reward = 0.0
     steps = 0
-    # for i in range(25):
+    # for i in range(15):
     while not done:
         d_s = (((np.transpose(state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
         action = agent.act(d_s)
@@ -76,6 +76,7 @@ for ep in range(epoch, episodes+1):
         ep -= 1
         continue
 
+    
     print(f'ep. {ep}\t{ep_ext_reward = :.3f}\t{steps = }')
     agent.write_plot_data(ep_ext_reward)
     agent.train()
