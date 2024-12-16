@@ -29,11 +29,15 @@ class Ordinal(nn.Module):
 
 
 def make_dnn(env: Env, hid_layers = [64, 64], action_space=None, net_type='shared', bins=None,
-             act_fn='relu', ordinal=False, conv_layers=None, batch_norm=False, max_pool = None, img_type=''):
+             act_fn='relu', ordinal=False, conv_layers=None, batch_norm=False, max_pool = None):
     
+    state = env.observation_space.sample()
+    if len(state) > 1:
+        pass #its an image
+    else:
+        pass #its an 1d array
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh(), 'elu': nn.ELU()}
-    state = env.observation_space.sample()
     ind = 0
     if img_type == 'rgb':
         ind = 1
