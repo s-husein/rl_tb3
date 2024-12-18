@@ -31,17 +31,19 @@ class Ordinal(nn.Module):
 def make_dnn(env: Env, hid_layers = [64, 64], action_space=None, net_type='shared', bins=None,
              act_fn='relu', ordinal=False, conv_layers=None, batch_norm=False, max_pool = None):
     
-    state = env.observation_space.sample()
-    if len(state) > 1:
-        pass #its an image
+    state_shape = env.observation_space.sample().shape
+    action_dim = len(env.action_space.sample())
+
+    print("State sample shape:", state_shape)
+    print("Action sample shape:", action_dim)
+    if len(state_shape) > 1:
+         inp_shape = np.prod(state_shape) #its an 1d array
     else:
-        pass #its an 1d array
+        inp_shape = state_shape[0] #its an image
+
     layers = []
     activation_fun = {'relu': nn.ReLU(), 'softplus':nn.Softplus(), 'tanh':nn.Tanh(), 'elu': nn.ELU()}
     ind = 0
-    if img_type == 'rgb':
-        ind = 1
-    inp_shape = state[ind].shape
 
     if conv_layers is not None:
         inp_h, inp_w, in_chann = inp_shape
@@ -76,7 +78,6 @@ def make_dnn(env: Env, hid_layers = [64, 64], action_space=None, net_type='share
         layers.append(activation_fun[act_fn])
 
     # try:
-    action_dim = len(env.action_space.sample())
     # except:
     #     pass
     

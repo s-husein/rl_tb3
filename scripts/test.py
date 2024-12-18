@@ -11,9 +11,6 @@ env = gym.make("BipedalWalker-v3", render_mode="human")
 pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
-print(env.action_space.sample())
-print(len(env.observation_space.sample().shape))
-
 
 k_epochs = 10
 batch_size = 128
@@ -37,9 +34,9 @@ max_steps = 10000
 obs_scale_factor = 0.1
 
 
-# pi = make_dnn(env, pi_hid_layers, act_space, 'actor', max_pool=max_pool).to(pu)
+pi = make_dnn(env, pi_hid_layers, act_space, 'actor', max_pool=max_pool).to(pu)
 
-
+print(pi)
 
 # print(pi)
 # img = cv.imread('/home/user/fyp/src/rl_tb3/depht_image.png')
