@@ -1,4 +1,4 @@
-from nets import make_dnn
+from nets import NeuralNet
 import torch
 import cv2 as cv
 import numpy as np
@@ -34,9 +34,18 @@ max_steps = 10000
 obs_scale_factor = 0.1
 
 
-pi = make_dnn(env, pi_hid_layers, act_space, 'actor', max_pool=max_pool).to(pu)
+model = NeuralNet(env=env,
+                hid_layers=pi_hid_layers,
+                action_space=act_space,
+                net_type='actor',
+                init_logstd=1.0)
 
-print(pi)
+
+state = env.observation_space.sample()
+
+print(model(torch.tensor(state)))
+
+
 
 # print(pi)
 # img = cv.imread('/home/user/fyp/src/rl_tb3/depht_image.png')
