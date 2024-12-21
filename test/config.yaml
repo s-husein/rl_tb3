@@ -1,2 +1,7 @@
-namme: "test"
-list: [1, 2, 3,4 , 5]
+name: 
+algo_confg:
+  
+network_config:
+  hid_layers: [128, 64]
+  net_type: 'separate'
+  act_fn: 'relu'
