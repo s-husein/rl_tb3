@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch
 import numpy as np
 from gym import Env
+from yaml import safe_load
 
 pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -29,8 +30,8 @@ class Ordinal(nn.Module):
 
 
 class NeuralNet(nn.Module):
-    def __init__(self, env: Env, hid_layers = [64, 64],
-                action_space=None, net_type='shared', bins=None,
+    def __init__(self, env: Env, hid_layers,
+                action_space, net_type, bins=None,
                 act_fn='relu', ordinal=False, init_logstd=0.0,
                 conv_layers=None, batch_norm=False,
                 max_pool = None):
@@ -48,8 +49,8 @@ class NeuralNet(nn.Module):
         logits = self.feedfwd(x)
         return logits
 
-    def create(self, env: Env, hid_layers = [64, 64],
-                action_space=None, net_type='shared', bins=None,
+    def create(self, env: Env, hid_layers,
+                action_space, net_type, bins=None,
                 act_fn='relu', ordinal=False, init_logstd = 0.0,
                 conv_layers=None, batch_norm=False,
                 max_pool = None):
@@ -133,3 +134,11 @@ class NeuralNet(nn.Module):
 
 
         self.feedfwd =  nn.Sequential(*layers)
+
+
+def make_net(configs):
+    if configs['network_params']['net_type'] == 'separate':
+        configs['network_params']['actor'] = NeuralNet(**configs['network_params'], net_type='actor')
+        configs['network_params']['critic'] = NeuralNet(**configs['network_params'], net_type='critic')
+    else:
+        configs[configs['network_params']['actor']] = NeuralNet(**configs['network_params'], net_type='shared')
