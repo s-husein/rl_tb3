@@ -1,10 +1,11 @@
-from os import environ
-home_folder = environ.get("HOME")
-PARENTFOLDER = f'{home_folder}/fyp/src/rl_tb3'
+import subprocess
+WORKING_DIR = subprocess.check_output("find ~ -name rl_tb3 | grep src/rl_tb3",
+                            shell=True,
+                            executable="/bin/bash").decode().rstrip('\n')
 
-PLOTFOLDER = f'{PARENTFOLDER}/plots'
-MODELFOLDER = f'{PARENTFOLDER}/models'
-CHECKPOINTFOLDER = f'{PARENTFOLDER}/checkpoints'
-STATUSFILE= f'{PARENTFOLDER}/status.txt'
-REWARDFOLDER = f'{PARENTFOLDER}/rewards'
-CONFIGFOLDER = f'{PARENTFOLDER}/configs'
+PLOTFOLDER = f'{WORKING_DIR}/plots'
+MODELFOLDER = f'{WORKING_DIR}/models'
+CHECKPOINTFOLDER = f'{WORKING_DIR}/checkpoints'
+STATUSFILE= f'{WORKING_DIR}/status.txt'
+REWARDFOLDER = f'{WORKING_DIR}/rewards'
+CONFIGFOLDER = f'{WORKING_DIR}/configs'
