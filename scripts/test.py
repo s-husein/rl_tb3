@@ -1,49 +1,60 @@
-from nets import NeuralNet
+from nets import make_net
 import torch
 import cv2 as cv
 import numpy as np
 from gymenv import Gym
 import gymnasium as gym
-
-
-env = gym.make("BipedalWalker-v3", render_mode="human")
-
+from yaml import safe_load
 pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
+with open('../config.yaml') as file:
+    params = safe_load(file)
 
-k_epochs = 10
-batch_size = 128
-pi_hid_layers = [64, 64]
-min_batch_size = 2048
-pi_conv_layers = [[16, 5, 1],
-                  [32, 3, 1],
-                  [64, 3, 1]]
-episodes = 10000
-lam = 0.95
-gamma = 0.99
-actor_lr = 3e-5
-critic_lr = 7e-5
-act_space = 'cont'
-name = 'rnd_ppo_stg1_pc'
-std_min_clip =  0.1
-eps_clip= 0.4
-beta = 0.1
-max_pool = [2, 2]
-max_steps = 10000
-obs_scale_factor = 0.1
+print(params)
 
 
-model = NeuralNet(env=env,
-                hid_layers=pi_hid_layers,
-                action_space=act_space,
-                net_type='actor',
-                init_logstd=1.0)
+env = params['env'] = gym.make("BipedalWalker-v3", render_mode="human")
+
+print(params)
 
 
-state = env.observation_space.sample()
+make_net(params)
 
-print(model(torch.tensor(state)))
+print(params)
+
+# k_epochs = 10
+# batch_size = 128
+# pi_hid_layers = [64, 64]
+# min_batch_size = 2048
+# pi_conv_layers = [[16, 5, 1],
+#                   [32, 3, 1],
+#                   [64, 3, 1]]
+# episodes = 10000
+# lam = 0.95
+# gamma = 0.99
+# actor_lr = 3e-5
+# critic_lr = 7e-5
+# act_space = 'cont'
+# name = 'rnd_ppo_stg1_pc'
+# std_min_clip =  0.1
+# eps_clip= 0.4
+# beta = 0.1
+# max_pool = [2, 2]
+# max_steps = 10000
+# obs_scale_factor = 0.1
+
+
+# model = NeuralNet(env=env,
+#                 hid_layers=pi_hid_layers,
+#                 action_space=act_space,
+#                 net_type='actor',
+#                 init_logstd=1.0)
+
+
+# state = env.observation_space.sample()
+
+# print(model(torch.tensor(state)))
 
 
 

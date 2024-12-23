@@ -15,6 +15,6 @@ algo_params:
   
 network_params:
   hid_layers: [128, 64]
-  net_type: 'separate'
+  nets: 'separate'
   act_fn: 'relu'
   action_space: 'cont'

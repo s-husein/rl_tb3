@@ -34,7 +34,7 @@ class NeuralNet(nn.Module):
                 action_space, net_type, bins=None,
                 act_fn='relu', ordinal=False, init_logstd=0.0,
                 conv_layers=None, batch_norm=False,
-                max_pool = None):
+                max_pool = None, **kwargs):
         super(NeuralNet, self).__init__()
 
         self.create(env, hid_layers, action_space,
@@ -53,7 +53,7 @@ class NeuralNet(nn.Module):
                 action_space, net_type, bins=None,
                 act_fn='relu', ordinal=False, init_logstd = 0.0,
                 conv_layers=None, batch_norm=False,
-                max_pool = None):
+                max_pool = None, **kwargs):
     
         state_shape = env.observation_space.sample().shape
         action_dim = len(env.action_space.sample())
@@ -102,10 +102,6 @@ class NeuralNet(nn.Module):
             inp = np.prod(inp_shape)
             layers.append(nn.Linear(inp, hid_layers[0]))
             layers.append(activation_fun[act_fn])
-
-        # try:
-        # except:
-        #     pass
         
         if len(hid_layers) > 1:
             dim_pairs = zip(hid_layers[:-1], hid_layers[1:])
@@ -137,8 +133,8 @@ class NeuralNet(nn.Module):
 
 
 def make_net(configs):
-    if configs['network_params']['net_type'] == 'separate':
-        configs['network_params']['actor'] = NeuralNet(**configs['network_params'], net_type='actor')
-        configs['network_params']['critic'] = NeuralNet(**configs['network_params'], net_type='critic')
+    if configs['network_params']['nets'] == 'separate':
+        configs['algo_params']['actor'] = NeuralNet(**configs['network_params'], net_type='actor')
+        configs['algo_params']['critic'] = NeuralNet(**configs['network_params'], net_type='critic')
     else:
-        configs[configs['network_params']['actor']] = NeuralNet(**configs['network_params'], net_type='shared')
+        configs[configs['algo_params']['actor']] = NeuralNet(**configs['network_params'], net_type='shared')
