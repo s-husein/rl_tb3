@@ -18,3 +18,4 @@ network_params:
   nets: 'separate'
   act_fn: 'relu'
   action_space: 'cont'
+  init_logstd: 0.5

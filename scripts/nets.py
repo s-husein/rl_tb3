@@ -134,7 +134,7 @@ class NeuralNet(nn.Module):
 
 def make_net(configs):
     if configs['network_params']['nets'] == 'separate':
-        configs['algo_params']['actor'] = NeuralNet(**configs['network_params'], net_type='actor')
-        configs['algo_params']['critic'] = NeuralNet(**configs['network_params'], net_type='critic')
+        configs['algo_params']['actor'] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='actor')
+        configs['algo_params']['critic'] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='critic')
     else:
-        configs[configs['algo_params']['actor']] = NeuralNet(**configs['network_params'], net_type='shared')
+        configs[configs['algo_params']['actor']] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='shared')
