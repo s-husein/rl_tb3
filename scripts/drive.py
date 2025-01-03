@@ -5,53 +5,104 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-# If modifying these scopes, delete the file token.json.
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-# creds = Credentials.from_authorized_user_file("token.json", scopes=SCOPES)
-creds = None
-# The file token.json stores the user's access and refresh tokens, and is
-# created automatically when the authorization flow completes for the first
-# time.
-if os.path.exists("token.json"):
-    creds = Credentials.from_authorized_user_file("token.json", SCOPES)
-# If there are no (valid) credentials available, let the user log in.
-if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(
-        "../credentials.json", SCOPES
-        )   
-        creds = flow.run_local_server(port=0)
-    # Save the credentials for the next run
-    with open("token.json", "w") as token:
-        token.write(creds.to_json())
-try:
 
-    service = build('drive', 'v3', credentials=creds)
-    folder_metadata = {
-        'name': 'test',
+
+class GoogleDrive:
+    def __init__(self):
+        token_path = "../token.json"
+        creds = None
+        if os.path.exists(token_path):
+            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                "../credentials.json", SCOPES
+                )   
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open(token_path, "w") as token:
+                token.write(creds.to_json())
+
+        self.service = build('drive', 'v3', credentials=creds)
+        print('drive initialized..')
+        
+    def create_folder(self, folder_name):
+        folder_metadata = {
+        'name': f'{folder_name}',
         "mimeType": "application/vnd.google-apps.folder",
-    }
+        }
 
-    created_folder = service.files().create(
-        body=folder_metadata,
-        fields='id'
-    ).execute()
+        created_folder = self.service.files().create(
+            body=folder_metadata,
+            fields='id'
+        ).execute()
 
-    results = service.files().list(
-        pageSize=15,
-        fields='nextPageToken, files(id, name)'
-    ).execute()
+        f_id = created_folder['id']
+        print(f'Created folder with id: {f_id}')
+        return f_id
 
-    items = results.get('files', [])
 
-    for item in items:
-        print(item['name'], item['id'])
+    def get_folder_id(self, folder_name):
+        results = self.service.files().list(
+            fields='nextPageToken, files(id, name)'
+            ).execute()
+        
+        files = results.get('files', [])
+        for file in files:
+            if file['name'] == folder_name:
+                return file['id']
+        
+        return None
+    
+    def upload_text_file():
+        
 
-    # print(f'Created Folder ID: {created_folder["id"]}')
 
-except HttpError as error:
-    print(f"An error occurred: {error}")
+
+folder_name = 'testing_drive'
+
+drive = GoogleDrive()
+
+# print(drive.get_folder_id('testing_api_for_research'))
+
+drive.create_folder(folder_name)
+
+
+
+
+
+
+
+
+# # If modifying these scopes, delete the file token.json.
+
+
+# # creds = Credentials.from_authorized_user_file("token.json", scopes=SCOPES)
+# creds = None
+# # The file token.json stores the user's access and refresh tokens, and is
+# # created automatically when the authorization flow completes for the first
+# # time.
+
+# try:
+
+    
+    
+
+#     created_folder = service.files().create(
+#         body=folder_metadata,
+#         fields='id'
+#     ).execute()
+
+
+#     for item in items:
+#         print(item['name'], item['id'])
+
+#     # print(f'Created Folder ID: {created_folder["id"]}')
+
+# except HttpError as error:
+#     print(f"An error occurred: {error}")
 
