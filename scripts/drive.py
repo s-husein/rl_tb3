@@ -3,15 +3,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
+from paths import RESULTFOLDER, WORKING_DIR
+import os
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
-
-
 class GoogleDrive:
     def __init__(self):
-        token_path = "../token.json"
+        token_path = f"{WORKING_DIR}/token.json"
         creds = None
         if os.path.exists(token_path):
             creds = Credentials.from_authorized_user_file(token_path, SCOPES)
@@ -20,7 +20,7 @@ class GoogleDrive:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                "../credentials.json", SCOPES
+                f"{WORKING_DIR}/credentials.json", SCOPES
                 )   
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
@@ -28,6 +28,11 @@ class GoogleDrive:
                 token.write(creds.to_json())
 
         self.service = build('drive', 'v3', credentials=creds)
+        self.mimetypes = {
+            'yaml': 'plain/text',
+            'txt': 'plain/text',
+
+        }
         print('drive initialized..')
         
     def create_folder(self, folder_name):
@@ -45,7 +50,6 @@ class GoogleDrive:
         print(f'Created folder with id: {f_id}')
         return f_id
 
-
     def get_folder_id(self, folder_name):
         results = self.service.files().list(
             fields='nextPageToken, files(id, name)'
@@ -58,18 +62,47 @@ class GoogleDrive:
         
         return None
     
-    def upload_text_file():
+    def upload_file(self, file_path):
+        file_data = {
+            'name': f'{os.path.basename(file_path)}',
+            'parents': ['1LunodTE59MOVs-iWKYIGT2MD2i6uopJY']
+        }
+
+        media = MediaFileUpload(file_path)
+        self.service.files().create(body=file_data,
+                                    media_body=media,
+                                    fields='id').execute()
         
+        print('File uploaded.')
+
+    
 
 
+# print(files)
 
-folder_name = 'testing_drive'
+
+# x = files[0].split('.')
+# print(x)
+
+
+# folder_name = 'testing_drive'
 
 drive = GoogleDrive()
 
 # print(drive.get_folder_id('testing_api_for_research'))
 
-drive.create_folder(folder_name)
+# drive.create_folder(folder_name)
+
+files = os.listdir(RESULTFOLDER)
+
+print('uploading files')
+
+for file in files:
+    drive.upload_file(f'{RESULTFOLDER}/{file}')
+
+
+
+
 
 
 
