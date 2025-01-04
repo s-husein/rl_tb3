@@ -21,7 +21,8 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print(f'using {device}')
 assert device == 'cuda', "GPU not connected!"
 
-
+class ActorCritic:
+    
 
 class REINFORCE(Utils):
     def __init__(self, env: Env, name='reinforce', hid_layer = [128, 128], net_type='shared', lr = 0.00003, act_space = 'disc'):

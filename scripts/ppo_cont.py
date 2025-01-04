@@ -9,6 +9,7 @@ positions = [(1, -1), (1, -2), (4, -1), (3, -1), (3, -2), (4, -2), (5, -1), (5, 
 angles = np.arange(0, 360, 15)
 max_steps = 1000
 act_space = 'cont'
+
 env = Gym(action_space=act_space, positions=positions, angles=angles)
 
 
