@@ -1,4 +1,3 @@
-from nets import make_dnn
 from utils import Utils
 from mems import Rollout
 from gym import Env
@@ -7,22 +6,124 @@ import torch
 import torch.nn.functional as F
 from torch.distributions import Categorical, Normal
 import numpy as np
-from paths import MODELFOLDER, PLOTFOLDER, REWARDFOLDER, STATUSFILE, CONFIGFOLDER
+from paths import MISC_DIR
 from copy import deepcopy
 from dists import MultiCategorical
 from utils import RunningMeanStd
 import os
+import yaml
 import random
-
-
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 print(f'using {device}')
-assert device == 'cuda', "GPU not connected!"
+# assert device == 'cuda', "GPU not connected!"
 
-class ActorCritic:
+class ActorCritic(Utils):
+    def __init__(self, name='a2c', min_batch_size=128, net_is_shared = True, actor_lr = 0.00003,
+                 critic_lr = 0.0003, action_space = 'disc', lam = None, gamma=0.99, 
+                 std_min_clip = 0.08, beta = 0.03, actor=None, critic=None):
+        self.buffer = Rollout()
+        self.min_batch_size = min_batch_size
+        self.net_is_shared = net_is_shared
+        self.model_file = f'{MISC_DIR}/{name}_model.pth'
+        self.plot_file = f'{MISC_DIR}/{name}_plot.txt'
+        with open(f'{MISC_DIR}/misc.yaml') as config_file:
+            self.configs = yaml.safe_load(config_file)
+            
+        self.action_space = action_space
+        self.lam = lam
+        self.gamma = gamma
+        self.std_min_clip = std_min_clip
+        self.beta = beta
+        if actor is None and critic is None:
+            raise Exception("Define the actor and critic models")
+        if self.net_is_shared:
+            self.model = actor.to(device)
+            self.optim = Adam(self.model.parameters(), lr = actor_lr, eps = 1e-8)
+            self.model.train()
+            print(self.model)
+        else:
+            self.actor = actor.to(device)
+            self.critic = critic.to(device)
+            self.act_optim = Adam(self.actor.parameters(), lr = actor_lr, eps = 1e-5)
+            self.crit_optim = Adam(self.critic.parameters(), lr = critic_lr, eps = 1e-5)
+            self.actor.train()
+            self.critic.train()
+            print(f'actor: {self.actor}\ncritic: {self.critic}')
     
+    def calc_values(self, states):
+        if self.conv_layer is None:
+            states = states.flatten(start_dim=1)
+        if self.net_is_shared:
+            values = self.model(states)[:, -1]
+        else:
+            values = self.critic(states).squeeze()
+        return values
+    
+    def calc_pd(self, states):
+        if self.net_is_shared:
+            logits = self.model(states)[:, :-1]
+        else:
+            logits = self.actor(states)
+        return logits
+    
+    def adv_gae(self, values, next_values):
+        rewards = self.buffer.traj['rewards']
+        not_dones = 1 - np.array(self.buffer.traj['dones'])
+        T = len(rewards)
+        with torch.no_grad():
+            advantage = torch.zeros_like(values, dtype=torch.float32).to(device)
+        futureadv = 0
+        for t in reversed(range(T)):
+            delta = rewards[t] + self.gamma*next_values[t]*not_dones[t] - values[t]
+            futureadv = delta + self.gamma*self.lam*futureadv*not_dones[t]
+            advantage[t] = futureadv
+        target_values = (advantage + values).to(device)
+        # advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
+        return advantage, target_values
+    
+    def adv_nstep(self, values, next_values, n):
+        rewards = self.buffer.traj['rewards']
+        with torch.no_grad():
+            rets = torch.zeros_like(values, dtype=torch.float32)
+        future_ret = next_values[n-1]
+        not_dones = 1 - np.array(self.buffer.traj['dones'])
+        for t in reversed(range(n+1)):
+            rets[t] = future_ret = rewards[t] + self.gamma*future_ret*not_dones[t]
+        advs = (rets - values).to(device)
+        target_values = rets.to(device)
+        return advs, target_values
+    
+    def calc_adv(self, values, next_values):
+        values = values.detach()
+        if self.n_step_ret is not None:
+            advs, target_values = self.adv_nstep(values, next_values, self.n_step_ret)
+        elif self.lam is not None:
+            advs, target_values = self.adv_gae(values, next_values)
+
+        return advs, target_values
+    
+    def log_probs(self, logits, actions):
+        if self.act_space == 'disc':
+            dist = Categorical(probs = F.softmax(logits, dim=1))
+            log_probs = dist.log_prob(actions)
+            entropy = dist.entropy()
+
+        elif self.act_space == 'cont':
+            mean, std = torch.chunk(logits, 2, dim=1)
+            mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
+            dist = Normal(mean, std)
+            log_probs = dist.log_prob(actions).sum(dim=1)
+            entropy = dist.entropy().sum(dim=1)
+
+        elif self.act_space == 'discretize':
+            dist = MultiCategorical(probs = logits)
+            log_probs = dist.log_prob(actions)
+            entropy = dist.entropy()
+
+        return log_probs, entropy
+
 
 class REINFORCE(Utils):
     def __init__(self, env: Env, name='reinforce', hid_layer = [128, 128], net_type='shared', lr = 0.00003, act_space = 'disc'):
@@ -128,78 +229,6 @@ class A2C(Utils):
             action = dist.sample()
         return action.to(device)
     
-    def calc_values(self, states):
-        if self.conv_layer is None:
-            states = states.flatten(start_dim=1)
-        if self.net_is_shared:
-            values = self.model(states)[:, -1]
-        else:
-            values = self.critic(states).squeeze()
-        return values
-    
-    def calc_pd(self, states):
-        if self.net_is_shared:
-            logits = self.model(states)[:, :-1]
-        else:
-            logits = self.actor(states)
-        return logits
-    
-    def adv_gae(self, values, next_values):
-        rewards = self.buffer.traj['rewards']
-        not_dones = 1 - np.array(self.buffer.traj['dones'])
-        T = len(rewards)
-        with torch.no_grad():
-            advantage = torch.zeros_like(values, dtype=torch.float32).to(device)
-        futureadv = 0
-        for t in reversed(range(T)):
-            delta = rewards[t] + self.gamma*next_values[t]*not_dones[t] - values[t]
-            futureadv = delta + self.gamma*self.lam*futureadv*not_dones[t]
-            advantage[t] = futureadv
-        target_values = (advantage + values).to(device)
-        # advantage = (advantage - advantage.mean())/(advantage.std() + 1e-08)
-        return advantage, target_values
-    
-    def adv_nstep(self, values, next_values, n):
-        rewards = self.buffer.traj['rewards']
-        with torch.no_grad():
-            rets = torch.zeros_like(values, dtype=torch.float32)
-        future_ret = next_values[n-1]
-        not_dones = 1 - np.array(self.buffer.traj['dones'])
-        for t in reversed(range(n+1)):
-            rets[t] = future_ret = rewards[t] + self.gamma*future_ret*not_dones[t]
-        advs = (rets - values).to(device)
-        target_values = rets.to(device)
-        return advs, target_values
-    
-    def calc_adv(self, values, next_values):
-        values = values.detach()
-        if self.n_step_ret is not None:
-            advs, target_values = self.adv_nstep(values, next_values, self.n_step_ret)
-        elif self.lam is not None:
-            advs, target_values = self.adv_gae(values, next_values)
-
-        return advs, target_values
-    
-    def log_probs(self, logits, actions):
-        if self.act_space == 'disc':
-            dist = Categorical(probs = F.softmax(logits, dim=1))
-            log_probs = dist.log_prob(actions)
-            entropy = dist.entropy()
-
-        elif self.act_space == 'cont':
-            mean, std = torch.chunk(logits, 2, dim=1)
-            mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
-            dist = Normal(mean, std)
-            log_probs = dist.log_prob(actions).sum(dim=1)
-            entropy = dist.entropy().sum(dim=1)
-
-        elif self.act_space == 'discretize':
-            dist = MultiCategorical(probs = logits)
-            log_probs = dist.log_prob(actions)
-            entropy = dist.entropy()
-
-        return log_probs, entropy
-    
     def shared_loss(self, states, actions, next_states):
         logits = self.calc_pd(states)
         values = self.calc_values(states)
@@ -249,17 +278,17 @@ class A2C(Utils):
             pass
 
 
-class PPO(A2C):
+class PPO(ActorCritic):
     def __init__(self, k_epochs,
                  batch_size = 256, min_batch_size=2048,
                  net_is_shared = False, conv_layer=False,
                  actor_lr=0.0003, critic_lr = 0.001,
-                 act_space = 'disc', name='ppo', lam=0.95,
+                 action_space = 'disc', name='ppo', lam=0.95,
                  std_min_clip = 0.07, beta=0.01, eps_clip=0.1,
-                 gamma=0.99, actor=None, critic=None):
+                 gamma=0.99, actor=None, critic=None, **kwargs):
         
         super(PPO, self).__init__(name = name, min_batch_size=min_batch_size, net_is_shared=net_is_shared,
-                                  actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space,
+                                  actor_lr=actor_lr, critic_lr=critic_lr, action_space=action_space,
                                   lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma,
                                   actor=actor, critic=critic)
         

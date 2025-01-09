@@ -1,4 +1,4 @@
-id: 'dummy_ppo'
+name: 'dummy_ppo'
 algo_params:
   k_epochs: 10
   batch_size: 128
@@ -15,6 +15,6 @@ algo_params:
   
 network_params:
   hid_layers: [128, 64]
-  nets: 'separate'
+  net_is_shared: false
   act_fn: 'relu'
   action_space: 'cont'

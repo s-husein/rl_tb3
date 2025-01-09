@@ -1,12 +1,9 @@
-from paths import CHECKPOINTFOLDER, STATUSFILE
+from paths import CHECKPOINT_DIR
 import torch
 import os
 import yaml
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
-def conv_params(**kwargs):
-    return kwargs
 
 
 class Utils:
@@ -37,7 +34,7 @@ class Utils:
         file.close()
 
     def create_checkpoint_file(self, num):
-        path = f'{CHECKPOINTFOLDER}/checkpoint_{num}.pth'
+        path = f'{CHECKPOINT_DIR}/checkpoint_{num}.pth'
         file = open(path, 'w')
         file.close()
         return path

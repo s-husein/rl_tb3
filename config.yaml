@@ -1,4 +1,4 @@
-id: 'dummy_ppo'
+name: 'dummy_ppo'
 algo_params:
   k_epochs: 10
   batch_size: 128
@@ -6,8 +6,8 @@ algo_params:
   episodes: 10000
   lam: 0.95
   gamma: 0.99
-  actor_lr: 3e-5
-  critic_lr: 7e-5
+  actor_lr: 0.00003
+  critic_lr: 0.00007
   std_min_clip:  0.1
   eps_clip: 0.4
   beta: 0.1
@@ -15,7 +15,7 @@ algo_params:
   
 network_params:
   hid_layers: [128, 64]
-  nets: 'separate'
+  net_is_shared: false
   act_fn: 'relu'
   action_space: 'cont'
   init_logstd: 0.5
