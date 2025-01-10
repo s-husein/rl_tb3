@@ -41,7 +41,7 @@ agent = PPO(k_epochs=k_epochs, batch_size=batch_size, min_batch_size=min_batch_s
             actor_lr=actor_lr, critic_lr=critic_lr, act_space=act_space, name=name,
             lam=lam, std_min_clip=std_min_clip, beta=beta, eps_clip=eps_clip, gamma=gamma, actor=pi, critic=v)
 
-epoch = agent.check_status_file()
+epoch = agent.configs['epochs']
 
 for ep in range(epoch, episodes+1):
 # for ep in range(1):

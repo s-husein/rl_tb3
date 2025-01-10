@@ -1,5 +1,5 @@
-name: 'dummy_ppo'
 algo_params:
+  name: 'dummy_ppo'
   k_epochs: 10
   batch_size: 128
   min_batch_size: 2048

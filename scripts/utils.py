@@ -43,11 +43,11 @@ class Utils:
         with open(self.config_file, 'w') as file:
             yaml.safe_dump(args, file)
 
-    def check_status_file(self):
-        checkpath = self.read_file(STATUSFILE)
-        epoch = 0
+    def check_status(self):
+        checkpath = self.configs['checkpoint_path']
+        epoch = self.configs['epochs']
         if checkpath != '':
-            epoch = self.load_checkpoint(checkpath) + 1
+            self.load_checkpoint(checkpath)
             file = open(self.plot_file, 'r')
             lines = file.readlines()
             file = open(self.plot_file, 'w')
@@ -57,7 +57,7 @@ class Utils:
             file = open(self.plot_file, 'w')
             file.close()
             self.write_file(self.plot_file, 'Rewards\n')
-            epoch = 0
+            epoch = self.configs['epochs'] = 0
         return epoch
 
     def write_plot_data(self, rewards):

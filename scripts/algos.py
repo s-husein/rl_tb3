@@ -30,7 +30,6 @@ class ActorCritic(Utils):
         self.plot_file = f'{MISC_DIR}/{name}_plot.txt'
         with open(f'{MISC_DIR}/misc.yaml') as config_file:
             self.configs = yaml.safe_load(config_file)
-            
         self.action_space = action_space
         self.lam = lam
         self.gamma = gamma
@@ -306,30 +305,34 @@ class PPO(ActorCritic):
         print(f'old policy: {self.old_policy}')
 
     def act(self, state: np.ndarray):
-        if self.conv_layer:
-            state = np.expand_dims(state, 0)
-        else:
-            state = state.flatten()
-        state = torch.from_numpy(state).to(device)
-        with torch.no_grad():
-            if self.conv_layer is None:
-                logits = self.old_policy(state)
-            else:
-                logits = self.old_policy(state).squeeze()
 
-            if self.net_is_shared:
-                logits = logits[:-1]
-            if self.act_space == 'disc':
-                dist = Categorical(logits=logits)
-            elif self.act_space == 'cont':
-                mean, std = torch.chunk(logits, 2)
-                mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.7)
-                dist = Normal(mean, std)
-            elif self.act_space == 'discretize':
-                dist = MultiCategorical(probs=logits)
+        logits = self.old_policy(torch.from_numpy(state).to(device))
+        return logits, self.old_policy.log_std
+
+        # if self.conv_layer:
+        #     state = np.expand_dims(state, 0)
+        # else:
+        #     state = state.flatten()
+        # state = torch.from_numpy(state).to(device)
+        # with torch.no_grad():
+        #     if self.conv_layer is None:
+        #         logits = self.old_policy(state)
+        #     else:
+        #         logits = self.old_policy(state).squeeze()
+
+        #     if self.net_is_shared:
+        #         logits = logits[:-1]
+        #     if self.action_space == 'disc':
+        #         dist = Categorical(logits=logits)
+        #     elif self.action_space == 'cont':
+        #         mean, std = torch.chunk(logits, 2)
+        #         mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.7)
+        #         dist = Normal(mean, std)
+        #     elif self.action_space == 'discretize':
+        #         dist = MultiCategorical(probs=logits)
             
-            action = dist.sample()
-        return action.to(device).clip(-1, 1)
+        #     action = dist.sample()
+        # return action.to(device).clip(-1, 1)
     
     def shared_loss(self, states, actions, values, advs, tar_values):
         logits = self.calc_pd(states)

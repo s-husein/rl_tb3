@@ -10,7 +10,6 @@ from yaml import safe_load
 
 pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 
-
 with open('../config.yaml') as file:
     params = safe_load(file)
 
@@ -20,5 +19,16 @@ make_net(params)
 
 agent = PPO(**params['algo_params'], **params['network_params'])
 
-print(agent.configs)
+epoch = agent.check_status()
+episodes = params['algo_params']['episodes']
+
+state = env.reset()[0]
+
+action = agent.act(state)
+
+print(action)
+
+
+# for ep in range(epoch, episodes):
+
 
