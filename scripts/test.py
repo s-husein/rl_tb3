@@ -22,13 +22,32 @@ agent = PPO(**params['algo_params'], **params['network_params'])
 epoch = agent.check_status()
 episodes = params['algo_params']['episodes']
 
-state = env.reset()[0]
+for ep in range(epoch, episodes):
+    done = False
+    total_rewards = 0
+    steps = 0
+    state = env.reset()[0]
+    while not done:
+        action = agent.act(state)
+        
+        next_state, reward, done, info, _ = env.step(action.detach().numpy())
 
-action = agent.act(state)
+        agent.buffer.add_experience(state, action, next_state, reward, done)
+        
+        state = next_state
 
-print(action)
+        steps += 1
+        total_rewards += reward
+        if steps >= params['algo_params']['max_steps']:
+            done = True
+
+    print(f'ep. {ep}\t{total_rewards = :.3f}\t{steps = }')
+    agent.write_plot_data(total_rewards)
+    agent.train()
+    agent.save_check_interval(epoch=ep, interval=10)
+    agent.save_best_model(total_rewards)
 
 
-# for ep in range(epoch, episodes):
+
 
 

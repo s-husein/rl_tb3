@@ -21,7 +21,7 @@ print(f'using {device}')
 
 class ActorCritic(Utils):
     def __init__(self, name='a2c', min_batch_size=128, net_is_shared = True, actor_lr = 0.00003,
-                 critic_lr = 0.0003, action_space = 'disc', lam = None, gamma=0.99, 
+                 critic_lr = 0.0003, action_space = 'disc', n_step_ret = None, lam = None, gamma=0.99, 
                  std_min_clip = 0.08, beta = 0.03, actor=None, critic=None):
         self.buffer = Rollout()
         self.min_batch_size = min_batch_size
@@ -33,6 +33,7 @@ class ActorCritic(Utils):
         self.action_space = action_space
         self.lam = lam
         self.gamma = gamma
+        self.n_step_ret = n_step_ret
         self.std_min_clip = std_min_clip
         self.beta = beta
         if actor is None and critic is None:
@@ -50,6 +51,9 @@ class ActorCritic(Utils):
             self.actor.train()
             self.critic.train()
             print(f'actor: {self.actor}\ncritic: {self.critic}')
+
+    def act():
+        pass
     
     def calc_values(self, states):
         if self.conv_layer is None:
@@ -104,19 +108,20 @@ class ActorCritic(Utils):
         return advs, target_values
     
     def log_probs(self, logits, actions):
-        if self.act_space == 'disc':
+        if self.action_space == 'disc':
             dist = Categorical(probs = F.softmax(logits, dim=1))
             log_probs = dist.log_prob(actions)
             entropy = dist.entropy()
 
-        elif self.act_space == 'cont':
-            mean, std = torch.chunk(logits, 2, dim=1)
-            mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
-            dist = Normal(mean, std)
+        elif self.action_space == 'cont':
+            # mean, std = torch.chunk(logits, 2, dim=1)
+            # mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
+            std = torch.exp(self.old_policy.log_std)
+            dist = Normal(logits, std)
             log_probs = dist.log_prob(actions).sum(dim=1)
             entropy = dist.entropy().sum(dim=1)
 
-        elif self.act_space == 'discretize':
+        elif self.action_space == 'discretize':
             dist = MultiCategorical(probs = logits)
             log_probs = dist.log_prob(actions)
             entropy = dist.entropy()
@@ -306,33 +311,30 @@ class PPO(ActorCritic):
 
     def act(self, state: np.ndarray):
 
-        logits = self.old_policy(torch.from_numpy(state).to(device))
-        return logits, self.old_policy.log_std
-
         # if self.conv_layer:
         #     state = np.expand_dims(state, 0)
         # else:
         #     state = state.flatten()
-        # state = torch.from_numpy(state).to(device)
-        # with torch.no_grad():
-        #     if self.conv_layer is None:
-        #         logits = self.old_policy(state)
-        #     else:
-        #         logits = self.old_policy(state).squeeze()
+        state = torch.from_numpy(state).to(device)
+        with torch.no_grad():
+            if self.conv_layer is None:
+                logits = self.old_policy(state)
+            else:
+                logits = self.old_policy(state).squeeze()
 
-        #     if self.net_is_shared:
-        #         logits = logits[:-1]
-        #     if self.action_space == 'disc':
-        #         dist = Categorical(logits=logits)
-        #     elif self.action_space == 'cont':
-        #         mean, std = torch.chunk(logits, 2)
-        #         mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.7)
-        #         dist = Normal(mean, std)
-        #     elif self.action_space == 'discretize':
-        #         dist = MultiCategorical(probs=logits)
+            if self.net_is_shared:
+                logits = logits[:-1]
+            if self.action_space == 'disc':
+                dist = Categorical(logits=logits)
+            elif self.action_space == 'cont':
+                # mean, std = torch.chunk(logits, 2)
+                mean, std = F.tanh(logits), torch.exp(self.old_policy.log_std)
+                dist = Normal(mean, std)
+            elif self.action_space == 'discretize':
+                dist = MultiCategorical(probs=logits)
             
-        #     action = dist.sample()
-        # return action.to(device).clip(-1, 1)
+            action = dist.sample()
+        return action.to(device).clip(-1, 1)
     
     def shared_loss(self, states, actions, values, advs, tar_values):
         logits = self.calc_pd(states)
@@ -412,12 +414,11 @@ class PPO(ActorCritic):
             # if aug:
             #     self.buffer.augment()
             rewards = sum(self.buffer.traj['rewards'])
-            if rewards <= self.new_rewards:
-                self.beta += 0.01
-            else:
-                self.beta -= (0.01 * (rewards/self.new_rewards))
-            self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
-            print(self.beta)
+            # if rewards <= self.new_rewards:
+            #     self.beta += 0.01
+            # else:
+            #     self.beta -= (0.01 * (rewards/self.new_rewards))
+            # self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
 
             print('training...')
             states = torch.stack(self.buffer.traj['states']).to(device)
@@ -442,7 +443,8 @@ class PPO(ActorCritic):
                     else:
                         self.separate_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)                    
             self.buffer.reset()
-            print('done...')
+            print(self.old_policy.log_std)
+            print('training done...')
             if self.net_is_shared:
                 self.old_policy.load_state_dict(self.model.state_dict())
             else:

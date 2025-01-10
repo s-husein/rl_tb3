@@ -1,4 +1,4 @@
-from paths import CHECKPOINT_DIR
+from paths import CHECKPOINT_DIR, MISC_DIR
 import torch
 import os
 import yaml
@@ -64,7 +64,6 @@ class Utils:
         self.write_file(self.plot_file, f'{rewards}\n')
 
     def save_checkpoint(self, epoch, checkpath):
-        file = open(STATUSFILE, 'w')
         if self.net_is_shared:
             checkpoint = {
                 'model_state_dict': self.model.state_dict(),
@@ -79,8 +78,9 @@ class Utils:
                 'crit_optim_state_dict': self.crit_optim.state_dict(),
                 'epoch': epoch
             }
-        file.write(checkpath)
-        file.close()
+        self.configs['checkpoint_path'] = checkpath
+        with open(f'{MISC_DIR}/misc.yaml', 'w') as conf_file:
+            yaml.safe_dump(self.configs, conf_file)
         torch.save(checkpoint, checkpath)
         print('checkpoint saved..')
     
@@ -131,9 +131,8 @@ class Utils:
         print('model saved...')
 
     def save_best_model(self, rewards):
-        if rewards > self.max_rewards:
-            self.max_rewards = rewards
-            self.write_file(self.reward_file, f'{rewards}')
+        if rewards > self.configs['max_reward']:
+            self.configs['max_reward'] = rewards
             self.save_model()
 
     def check_rewards_file(self):
