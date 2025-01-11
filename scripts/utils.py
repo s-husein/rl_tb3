@@ -135,6 +135,8 @@ class Utils:
         if rewards > self.configs['max_reward']:
             self.configs['max_reward'] = rewards
             self.save_model()
+            with open(f'{MISC_DIR}/misc.yaml', 'w') as conf_file:
+                yaml.safe_dump(self.configs, conf_file)
 
     def check_rewards_file(self):
         if os.path.exists(self.reward_file):

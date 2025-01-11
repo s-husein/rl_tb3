@@ -44,7 +44,7 @@ for ep in range(epoch, episodes):
     print(f'ep. {ep}\t{total_rewards = :.3f}\t{steps = }')
     agent.write_plot_data(total_rewards)
     agent.save_check_interval(epoch=ep, interval=10)
-    agent.save_best_model(total_rewards)
+    agent.save_best_model(float(total_rewards))
     agent.train()
 
 
