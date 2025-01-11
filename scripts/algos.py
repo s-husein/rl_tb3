@@ -116,8 +116,9 @@ class ActorCritic(Utils):
         elif self.action_space == 'cont':
             # mean, std = torch.chunk(logits, 2, dim=1)
             # mean, std = F.tanh(mean), F.sigmoid(std).clip(self.std_min_clip, 0.4)
+            mean = F.tanh(logits)
             std = torch.exp(self.old_policy.log_std)
-            dist = Normal(logits, std)
+            dist = Normal(mean, std)
             log_probs = dist.log_prob(actions).sum(dim=1)
             entropy = dist.entropy().sum(dim=1)
 
@@ -406,7 +407,7 @@ class PPO(ActorCritic):
             self.critic.train()
             self.old_policy.load_state_dict(self.actor.state_dict())
         print('checkpoint loaded...')
-        return checkpoint['epoch']
+        return
 
     def train(self):
         if self.buffer.size > self.min_batch_size:
@@ -443,12 +444,12 @@ class PPO(ActorCritic):
                     else:
                         self.separate_loss(states=min_states, actions=min_actions, advs=min_advs, tar_values=min_tar_values)                    
             self.buffer.reset()
-            print(self.old_policy.log_std)
             print('training done...')
             if self.net_is_shared:
                 self.old_policy.load_state_dict(self.model.state_dict())
             else:
                 self.old_policy.load_state_dict(self.actor.state_dict())
+                self.old_policy.log_std = self.actor.log_std
         else:
             pass
 

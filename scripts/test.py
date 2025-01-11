@@ -13,7 +13,7 @@ pu = 'cuda' if torch.cuda.is_available() else 'cpu'
 with open('../config.yaml') as file:
     params = safe_load(file)
 
-env = params['env'] = gym.make("BipedalWalker-v3", render_mode="human")
+env = params['env'] = gym.make("BipedalWalker-v3", render_mode="rgb_array")
 
 make_net(params)
 
@@ -30,7 +30,7 @@ for ep in range(epoch, episodes):
     while not done:
         action = agent.act(state)
         
-        next_state, reward, done, info, _ = env.step(action.detach().numpy())
+        next_state, reward, done, info, _ = env.step(action.cpu().numpy())
 
         agent.buffer.add_experience(state, action, next_state, reward, done)
         
@@ -43,9 +43,9 @@ for ep in range(epoch, episodes):
 
     print(f'ep. {ep}\t{total_rewards = :.3f}\t{steps = }')
     agent.write_plot_data(total_rewards)
-    agent.train()
     agent.save_check_interval(epoch=ep, interval=10)
     agent.save_best_model(total_rewards)
+    agent.train()
 
 
 

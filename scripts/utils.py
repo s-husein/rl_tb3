@@ -45,6 +45,7 @@ class Utils:
 
     def check_status(self):
         checkpath = self.configs['checkpoint_path']
+        print(checkpath)
         epoch = self.configs['epochs']
         if checkpath != '':
             self.load_checkpoint(checkpath)
@@ -58,7 +59,7 @@ class Utils:
             file.close()
             self.write_file(self.plot_file, 'Rewards\n')
             epoch = self.configs['epochs'] = 0
-        return epoch
+        return epoch+1
 
     def write_plot_data(self, rewards):
         self.write_file(self.plot_file, f'{rewards}\n')
@@ -79,6 +80,7 @@ class Utils:
                 'epoch': epoch
             }
         self.configs['checkpoint_path'] = checkpath
+        self.configs['epochs'] = epoch
         with open(f'{MISC_DIR}/misc.yaml', 'w') as conf_file:
             yaml.safe_dump(self.configs, conf_file)
         torch.save(checkpoint, checkpath)
@@ -99,7 +101,6 @@ class Utils:
             self.actor.train()
             self.critic.train()
         print('checkpoint loaded...')
-        return checkpoint['epoch']
     
     def save_check_interval(self, epoch, interval=50):
         if not(epoch % interval) and epoch > 0:

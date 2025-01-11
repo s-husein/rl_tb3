@@ -1,17 +1,17 @@
 algo_params:
   name: 'dummy_ppo'
-  k_epochs: 10
-  batch_size: 128
+  k_epochs: 7
+  batch_size: 64
   min_batch_size: 2048
   episodes: 10000
   lam: 0.95
   gamma: 0.99
-  actor_lr: 0.003
-  critic_lr: 0.007
+  actor_lr: 0.00005
+  critic_lr: 0.0001
   std_min_clip:  0.1
-  eps_clip: 0.3
-  beta: 0.05
-  max_steps: 2000
+  eps_clip: 0.2
+  beta: 0.07
+  max_steps: 3000
   max_reward: 100
   
 network_params:
@@ -19,4 +19,4 @@ network_params:
   net_is_shared: false
   act_fn: 'relu'
   action_space: 'cont'
-  init_logstd: 0.5
+  init_logstd: 0.1
