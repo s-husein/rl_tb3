@@ -68,6 +68,7 @@ class Utils:
 
     def save_plot(self):
         data = pd.read_csv(self.plot_file)
+        plt.figure(figsize=(11, 8))
         data.rolling(70).mean().plot(color='green', linewidth=2)
         plt.legend().set_visible(False)
         plt.xlabel('Episodes', fontsize=13)
@@ -75,7 +76,7 @@ class Utils:
         plt.xticks(fontsize=13)
         plt.grid(linestyle='--')
         name = 'dummy_ppo'
-        plt.savefig(f'{MISC_DIR}/{name}_plot', dip=700)
+        plt.savefig(f'{MISC_DIR}/{name}_plot', dip=300)
 
 
     def save_checkpoint(self, epoch, checkpath):

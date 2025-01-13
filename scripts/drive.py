@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from paths import WORKING_DIR
 import os
+import datetime as dt
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
@@ -75,11 +76,12 @@ class GoogleDrive:
         if self.get_folder_id() is not None:
             print("Folder already exists...")
         else:
-            self.folder_id = self.create_folder(self.folder_name)
+            drive_folder = dt.datetime.now().strftime("%H:%M - %d/%m/%Y")
+            self.folder_id = self.create_folder(drive_folder)
             files = os.listdir(self.folder_name)
             print('Uploading files...')
             for file in files:
-                self.upload_file(f'{self.folder_name}/{file}')
+                self.upload_file(f'{drive_folder}/{file}')
 
             print('Uploading complete...')
 
