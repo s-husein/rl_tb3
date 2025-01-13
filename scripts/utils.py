@@ -2,6 +2,8 @@ from paths import CHECKPOINT_DIR, MISC_DIR
 import torch
 import os
 import yaml
+import pandas as pd
+import matplotlib.pyplot as plt
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -63,6 +65,18 @@ class Utils:
 
     def write_plot_data(self, rewards):
         self.write_file(self.plot_file, f'{rewards}\n')
+
+    def save_plot(self):
+        data = pd.read_csv(self.plot_file)
+        data.rolling(70).mean().plot(color='green', linewidth=2)
+        plt.legend().set_visible(False)
+        plt.xlabel('Episodes', fontsize=13)
+        plt.ylabel('Average Rewards', fontsize=13)
+        plt.xticks(fontsize=13)
+        plt.grid(linestyle='--')
+        name = 'dummy_ppo'
+        plt.savefig(f'{MISC_DIR}/{name}_plot', dip=700)
+
 
     def save_checkpoint(self, epoch, checkpath):
         if self.net_is_shared:

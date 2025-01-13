@@ -4,7 +4,7 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from paths import RESULT_DIR, WORKING_DIR
+from paths import WORKING_DIR
 import os
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
@@ -76,10 +76,10 @@ class GoogleDrive:
             print("Folder already exists...")
         else:
             self.folder_id = self.create_folder(self.folder_name)
-            files = os.listdir(RESULT_DIR)
+            files = os.listdir(self.folder_name)
             print('Uploading files...')
             for file in files:
-                self.upload_file(f'{RESULT_DIR}/{file}')
+                self.upload_file(f'{self.folder_name}/{file}')
 
             print('Uploading complete...')
 
