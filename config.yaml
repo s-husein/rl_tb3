@@ -3,7 +3,7 @@ algo_params:
   k_epochs: 7
   batch_size: 64
   min_batch_size: 2048
-  episodes: 50
+  episodes: 1500
   lam: 0.95
   gamma: 0.99
   actor_lr: 0.00005
