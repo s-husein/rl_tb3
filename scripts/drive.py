@@ -76,7 +76,7 @@ class GoogleDrive:
         if self.get_folder_id() is not None:
             print("Folder already exists...")
         else:
-            drive_folder = dt.datetime.now().strftime("%H:%M - %d/%m/%Y")
+            drive_folder = dt.datetime.now().strftime("%H:%M_%d-%m-%Y")
             self.folder_id = self.create_folder(drive_folder)
             files = os.listdir(self.folder_name)
             print('Uploading files...')
