@@ -4,9 +4,10 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-from paths import WORKING_DIR
+from paths import WORKING_DIR, MISC_DIR
 import os
 import datetime as dt
+import yaml
 
 SCOPES = ["https://www.googleapis.com/auth/drive"]
 
@@ -76,53 +77,25 @@ class GoogleDrive:
         if self.get_folder_id() is not None:
             print("Folder already exists...")
         else:
+            
+            with open(f'{MISC_DIR}/misc.yaml') as file:
+                data = yaml.safe_load(file)
+
+            string_data = yaml.dump(data, default_flow_style=False)
+
+            with open(f'{WORKING_DIR}/config.yaml') as file:
+                data = yaml.safe_load(file)
+
+            string_data += yaml.dump(data, default_flow_style=False)
+
+            with open(f"{MISC_DIR}/configs.txt", 'w') as file:
+                file.write(string_data)
+            
             drive_folder = dt.datetime.now().strftime("%H:%M_%d-%m-%Y")
             self.folder_id = self.create_folder(drive_folder)
             files = os.listdir(self.folder_name)
             print('Uploading files...')
             for file in files:
-                self.upload_file(f'{drive_folder}/{file}')
+                self.upload_file(f'{MISC_DIR}/{file}')
 
             print('Uploading complete...')
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# # If modifying these scopes, delete the file token.json.
-
-
-# # creds = Credentials.from_authorized_user_file("token.json", scopes=SCOPES)
-# creds = None
-# # The file token.json stores the user's access and refresh tokens, and is
-# # created automatically when the authorization flow completes for the first
-# # time.
-
-# try:
-
-    
-    
-
-#     created_folder = service.files().create(
-#         body=folder_metadata,
-#         fields='id'
-#     ).execute()
-
-
-#     for item in items:
-#         print(item['name'], item['id'])
-
-#     # print(f'Created Folder ID: {created_folder["id"]}')
-
-# except HttpError as error:
-#     print(f"An error occurred: {error}")
-

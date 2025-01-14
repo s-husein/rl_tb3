@@ -50,7 +50,6 @@ for ep in range(epoch, episodes):
     agent.save_check_interval(epoch=ep, interval=10)
     agent.save_best_model(float(total_rewards))
     agent.train()
-agent.save_plot()
 g_drive.upload_folder()
 
 

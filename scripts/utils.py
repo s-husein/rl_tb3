@@ -121,6 +121,7 @@ class Utils:
         if not(epoch % interval) and epoch > 0:
             checkpath = self.create_checkpoint_file(epoch)
             self.save_checkpoint(epoch, checkpath)
+            self.save_plot()
     
     def load_model(self):
         print('loading model...')

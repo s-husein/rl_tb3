@@ -1,7 +1,7 @@
 import subprocess
 import os
 import yaml
-WORKING_DIR = subprocess.check_output("find ~ -name rl_tb3 | grep src/rl_tb3",
+WORKING_DIR = subprocess.check_output("find ~ -name rl_tb3 | grep rl_tb3",
                             shell=True,
                             executable="/bin/bash").decode().rstrip('\n')
 
