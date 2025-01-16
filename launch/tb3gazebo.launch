@@ -1,7 +1,7 @@
 <launch>
     <param name="robot_description" command="$(find xacro)/xacro --inorder $(find rl_tb3)/urdf/tb3.urdf.xacro"/>
     <include file="$(find gazebo_ros)/launch/empty_world.launch">
-    <arg name="world_name" value="$(find rl_tb3)/worlds/fyp_2.world"/>
+    <arg name="world_name" value="$(find rl_tb3)/worlds/maze_stage1.world"/>
     <arg name="headless" value="true"/>
     <arg name="use_sim_time" value="true"/>
     <arg name="gui" value="true"/>
