@@ -107,8 +107,8 @@ class Gym(gym.Env):
         cv_img = CvBridge().imgmsg_to_cv2(rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10))
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
         cv_img = cv_img/8.0
-        cv_img = (cv_img*255).astype(np.uint8)
         cv_img = np.nan_to_num(cv_img, nan=0.0)
+        cv_img = (cv_img*255).astype(np.uint8)
         cv_img = cv_img[:self.depth_crop, :]
         cv_img = cv_img = np.expand_dims(cv_img, 2)
         return cv_img
