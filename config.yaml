@@ -3,7 +3,7 @@ algo_params:
   k_epochs: 7
   batch_size: 64
   min_batch_size: 2048
-  episodes: 1500
+  episodes: 10000
   lam: 0.95
   gamma: 0.99
   actor_lr: 0.00005
@@ -11,11 +11,11 @@ algo_params:
   std_min_clip:  0.1
   eps_clip: 0.2
   beta: 0.07
-  max_steps: 3000
+  max_steps: 15000
   max_reward: 100
   
 network_params:
-  hid_layers: [128, 128]
+  hid_layers: [512, 256]
   net_is_shared: false
   act_fn: 'relu'
   action_space: 'cont'
@@ -24,5 +24,5 @@ network_params:
 env_params:
   obs_scale_factor: 0.1
   positions: [[-2.5, -2.0]]
-  angles: [0, 45, 90, 60, 120]
+  angles: [0, 45, 90, 135, 180, 225, 270, 315]
   noise_std: 15

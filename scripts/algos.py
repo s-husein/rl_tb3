@@ -286,7 +286,7 @@ class A2C(Utils):
 class PPO(ActorCritic):
     def __init__(self, k_epochs,
                  batch_size = 256, min_batch_size=2048,
-                 net_is_shared = False, conv_layer=False,
+                 net_is_shared = False, conv_layer=None,
                  actor_lr=0.0003, critic_lr = 0.001,
                  action_space = 'disc', name='ppo', lam=0.95,
                  std_min_clip = 0.07, beta=0.01, eps_clip=0.1,
@@ -311,7 +311,7 @@ class PPO(ActorCritic):
 
     def act(self, state: np.ndarray):
 
-        if self.conv_layer:
+        if self.conv_layer is not None:
             state = np.expand_dims(state, 0)
         else:
             state = state.flatten()
