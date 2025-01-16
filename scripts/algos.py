@@ -297,7 +297,6 @@ class PPO(ActorCritic):
                                   lam=lam, std_min_clip=std_min_clip, beta = beta, gamma=gamma,
                                   actor=actor, critic=critic)
         
-        self.new_rewards = 5000
         self.batch_size = batch_size
         self.k_epochs = k_epochs
         self.eps_clip = eps_clip
@@ -316,7 +315,7 @@ class PPO(ActorCritic):
             state = np.expand_dims(state, 0)
         else:
             state = state.flatten()
-        state = torch.from_numpy(state/255).to(device)
+        state = torch.from_numpy(state).to(device)
         with torch.no_grad():
             if self.conv_layer is None:
                 logits = self.old_policy(state)

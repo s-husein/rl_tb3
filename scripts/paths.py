@@ -16,9 +16,7 @@ with open(f'{WORKING_DIR}/config.yaml') as file:
 configs = {
     'status': 'not_started',
     'max_reward': params['algo_params']['max_reward'],
-    'epochs': 0,
-    'checkpoint_path': '',
-    'configs': None
+    'epochs': 0
 }
 
 for dir in dirs:

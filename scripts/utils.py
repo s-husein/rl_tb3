@@ -5,6 +5,7 @@ import yaml
 import pandas as pd
 import matplotlib.pyplot as plt
 
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 
@@ -46,30 +47,35 @@ class Utils:
             yaml.safe_dump(args, file)
 
     def check_status(self):
-        checkpath = self.configs['checkpoint_path']
-        print(checkpath)
-        epoch = self.configs['epochs']
-        if checkpath != '':
-            self.load_checkpoint(checkpath)
-            file = open(self.plot_file, 'r')
-            lines = file.readlines()
-            file = open(self.plot_file, 'w')
-            file.writelines(lines[:epoch+1])
-            file.close()
-        else:
+        status = self.configs['status']
+        if status == 'finished':
+            raise Exception('Training already finished...')
+        elif status == 'not_started':
             file = open(self.plot_file, 'w')
             file.close()
             self.write_file(self.plot_file, 'Rewards\n')
             epoch = self.configs['epochs'] = 0
-        return epoch+1
+            self.configs['status'] = 'in_progress'
+        elif status == 'in_progress':
+            epoch = self.configs['epochs']
+            checkpath = f'{CHECKPOINT_DIR}/checkpoint_{epoch}.pth'
+            if os.path.exists(checkpath):
+                self.load_checkpoint(checkpath)
+                file = open(self.plot_file, 'r')
+                lines = file.readlines()
+                file = open(self.plot_file, 'w')
+                file.writelines(lines[:epoch+1])
+                file.close()
+            return epoch+1
+        
 
     def write_plot_data(self, rewards):
         self.write_file(self.plot_file, f'{rewards}\n')
 
     def save_plot(self):
         data = pd.read_csv(self.plot_file)
-        plt.figure(figsize=(11, 8))
-        data.rolling(int(self.configs['epochs']/20)).mean().plot(color='green', linewidth=2)
+        plt.figure(figsize=(11, 9))
+        data.rolling(int(self.configs['epochs']/20)).mean().plot(color='red', linewidth=3)
         plt.legend().set_visible(False)
         plt.xlabel('Episodes', fontsize=13)
         plt.ylabel('Average Rewards', fontsize=13)
@@ -95,7 +101,6 @@ class Utils:
                 'crit_optim_state_dict': self.crit_optim.state_dict(),
                 'epoch': epoch
             }
-        self.configs['checkpoint_path'] = checkpath
         self.configs['epochs'] = epoch
         with open(f'{MISC_DIR}/misc.yaml', 'w') as conf_file:
             yaml.safe_dump(self.configs, conf_file)

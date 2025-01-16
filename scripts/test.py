@@ -6,7 +6,6 @@ import numpy as np
 from algos import PPO
 from drive import GoogleDrive
 from gymenv import Gym
-import gymnasium as gym
 from yaml import safe_load
 
 
@@ -16,15 +15,16 @@ with open(f'{WORKING_DIR}/config.yaml') as file:
     params = safe_load(file)
 
 params = {**params['env_params'], **params['network_params'], **params['algo_params']}
+g_drive = GoogleDrive(MISC_DIR)
 
 
 env = params['env'] = Gym(**params)
 
 make_net(params)
 
-g_drive = GoogleDrive(MISC_DIR)
-
 agent = PPO(**params)
+
+
 
 epoch = agent.check_status()
 
@@ -66,7 +66,12 @@ for ep in range(epoch, episodes):
     agent.save_check_interval(epoch=ep, interval=10)
     agent.save_best_model(float(ep_reward))
     agent.train()
-g_drive.upload_folder()
+
+    
+if epoch == params['episodes']:
+    g_drive.upload_folder()
+
+
 
 
 
