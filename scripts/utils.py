@@ -66,7 +66,7 @@ class Utils:
                 file = open(self.plot_file, 'w')
                 file.writelines(lines[:epoch+1])
                 file.close()
-            return epoch+1
+        return epoch+1
         
 
     def write_plot_data(self, rewards):
