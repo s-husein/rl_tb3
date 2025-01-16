@@ -17,7 +17,7 @@ import random
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
 print(f'using {device}')
-# assert device == 'cuda', "GPU not connected!"
+assert device == 'cuda', "GPU not connected!"
 
 class ActorCritic(Utils):
     def __init__(self, name='a2c', min_batch_size=128, net_is_shared = True, actor_lr = 0.00003,
@@ -312,10 +312,10 @@ class PPO(ActorCritic):
 
     def act(self, state: np.ndarray):
 
-        # if self.conv_layer:
-        #     state = np.expand_dims(state, 0)
-        # else:
-        #     state = state.flatten()
+        if self.conv_layer:
+            state = np.expand_dims(state, 0)
+        else:
+            state = state.flatten()
         state = torch.from_numpy(state).to(device)
         with torch.no_grad():
             if self.conv_layer is None:

@@ -41,7 +41,6 @@ class NeuralNet(nn.Module):
                     net_type, bins, act_fn, ordinal,
                     init_logstd, conv_layers,
                     batch_norm, max_pool)
-        print(f'feed forward network: {self.feedfwd}')
         if hasattr(self, 'log_std'):
             print(f'log standard deviation parameter: {self.log_std}')
 
@@ -55,7 +54,7 @@ class NeuralNet(nn.Module):
                 conv_layers=None, batch_norm=False,
                 max_pool = None, **kwargs):
     
-        state_shape = env.observation_space.sample().shape
+        state_shape = env.observation_space.sample()[0].shape
         action_dim = len(env.action_space.sample())
 
         print("State sample shape:", state_shape)
@@ -113,7 +112,8 @@ class NeuralNet(nn.Module):
             out = env.action_space.n
         elif action_space == 'cont':
             out = action_dim
-            self.log_std = nn.Parameter(torch.ones(out)*init_logstd, requires_grad  = True)
+            if net_type == 'actor':
+                self.log_std = nn.Parameter(torch.ones(out)*init_logstd, requires_grad  = True)
         elif action_space == 'discretize':
             out = action_dim*bins
         else:
@@ -133,8 +133,8 @@ class NeuralNet(nn.Module):
 
 
 def make_net(configs):
-    if configs['network_params']['net_is_shared']:
-        configs[configs['algo_params']['actor']] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='shared')
+    if configs['net_is_shared']:
+        configs['actor'] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='shared')
     else:
-        configs['algo_params']['actor'] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='actor')
-        configs['algo_params']['critic'] = NeuralNet(env=configs['env'], **configs['network_params'], net_type='critic')
+        configs['actor'] = NeuralNet(**configs, net_type='actor')
+        configs['critic'] = NeuralNet(**configs, net_type='critic')

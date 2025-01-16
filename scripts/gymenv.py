@@ -15,13 +15,13 @@ from time import sleep
 
 class Gym(gym.Env):
 
-    def __init__(self, positions = [(0, 0)], angles = [0], action_space = 'disc', bins=7, obs_scale_factor=1, conv_layers=None):
+    def __init__(self, positions = [(0, 0)], angles = [0],
+                 action_space = 'disc', bins=7, obs_scale_factor=1, **kwargs):
         self._action_space = action_space
         self._bins = bins
         self.POS = positions
         self.ANGLES = angles
         self.scal_fac = obs_scale_factor
-        self.conv_layers = conv_layers
         self.depth_crop = int(360*obs_scale_factor*0.75)
         depth_img_shape = (self.depth_crop, int(640*obs_scale_factor), 1)
         rgb_img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 3)
@@ -90,7 +90,7 @@ class Gym(gym.Env):
         self.action_pub.publish(pub_act)
 
     def conv_action(self, lin_act, ang_act):
-            return np.clip((1/(1 + np.exp(-7*lin_act)))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*ang_act)*0.5, -0.5, 0.5)
+            return np.clip((1/(1 + np.exp(-5*lin_act)))*0.22, 0.0, 0.22), np.clip(np.tanh(2.5*ang_act)*0.5, -0.5, 0.5)
 
     def _add_noise(self, img, intensity=15):
         noise = np.random.randint(-intensity, intensity, img.shape, dtype=np.int8)

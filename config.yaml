@@ -20,3 +20,9 @@ network_params:
   act_fn: 'relu'
   action_space: 'cont'
   init_logstd: 0.1
+
+env_params:
+  obs_scale_factor: 0.1
+  positions: [[3, 3]]
+  angles: [0, 45, 90, 60, 120]
+  noise_std: 15
