@@ -23,6 +23,6 @@ network_params:
 
 env_params:
   obs_scale_factor: 0.1
-  positions: [[3, 3]]
+  positions: [[-2.5, -2.0]]
   angles: [0, 45, 90, 60, 120]
   noise_std: 15
