@@ -31,33 +31,29 @@ epoch = agent.check_status()
 episodes = params['episodes']+1
 
 for ep in range(epoch, episodes):
-    except_flag = False
     done = False
     try:
         state = env.reset()[0]
+        ep_reward = 0
+        steps = 0
+        while not done:
+            d_s = (((np.transpose(state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
+            action = agent.act(d_s)
+            try:
+                next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
+                cv.imshow('depth', state[0])
+                cv.waitKey(1)
+            except:
+                except_flag = True
+                break
+            d_ns = (((np.transpose(next_state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
+            agent.buffer.add_experience(d_s, action, d_ns, reward, done)
+            state = next_state
+            ep_reward += reward
+            steps += 1
+            if steps >= params['max_steps']:
+                break
     except:
-        ep -= 1
-        continue
-    ep_reward = 0
-    steps = 0
-    while not done:
-        d_s = (((np.transpose(state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
-        action = agent.act(d_s)
-        try:
-            next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
-            cv.imshow('depth', state[0])
-            cv.waitKey(1)
-        except:
-            except_flag = True
-            break
-        d_ns = (((np.transpose(next_state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
-        agent.buffer.add_experience(d_s, action, d_ns, reward, done)
-        state = next_state
-        ep_reward += reward
-        steps += 1
-        if steps >= params['max_steps']:
-            break
-    if except_flag:
         ep -= 1
         continue
 
