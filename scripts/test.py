@@ -30,53 +30,43 @@ epoch = agent.check_status()
 
 episodes = params['episodes']+1
 
+for ep in range(epoch, episodes):
+    except_flag = False
+    done = False
+    # try:
+    state = env.reset()[0]
+    # except:
+    #     ep -= 1
+    #     continue
+    ep_reward = 0
+    steps = 0
+    while not done:
+        d_s = (((np.transpose(state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
+        action = agent.act(d_s)
+        try:
+            next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
+            cv.imshow('depth', state[0])
+            cv.waitKey(1)
+        except:
+            except_flag = True
+            break
+        d_ns = (((np.transpose(next_state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
+        agent.buffer.add_experience(d_s, action, d_ns, reward, done)
+        state = next_state
+        ep_reward += reward
+        steps += 1
+        if steps >= params['max_steps']:
+            break
+    if except_flag:
+        ep -= 1
+        continue
 
-state = env.reset()[0][0]
-
-state = state.flatten()
-
-state = torch.from_numpy(state/255).float().to(pu)
-
-print(agent.old_policy(state))
-
-
-
-
-
-# for ep in range(epoch, episodes):
-#     except_flag = False
-#     done = False
-#     # try:
-#     state = env.reset()[0][0]
-#     # except:
-#     #     ep -= 1
-#     #     continue
-#     ep_reward = 0
-#     steps = 0
-#     while not done:
-#         action = agent.act(state/255)
-#         try:
-#             next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
-#             env.render()
-#         except:
-#             except_flag = True
-#             break
-#         agent.buffer.add_experience(state, action, next_state, reward, done)
-#         state = next_state
-#         ep_reward += reward
-#         steps += 1
-#         if steps >= params['max_steps']:
-#             done = True
-#     if except_flag:
-#         ep -= 1
-#         continue
-
-#     print(f'ep. {ep}\t{ep_reward = :.3f}\t{steps = }')
-#     agent.write_plot_data(ep_reward)
-#     agent.save_check_interval(epoch=ep, interval=10)
-#     agent.save_best_model(float(ep_reward))
-#     agent.train()
-# g_drive.upload_folder()
+    print(f'ep. {ep}\t{ep_reward = :.3f}\t{steps = }')
+    agent.write_plot_data(ep_reward)
+    agent.save_check_interval(epoch=ep, interval=10)
+    agent.save_best_model(float(ep_reward))
+    agent.train()
+g_drive.upload_folder()
 
 
 

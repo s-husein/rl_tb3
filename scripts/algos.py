@@ -316,7 +316,7 @@ class PPO(ActorCritic):
             state = np.expand_dims(state, 0)
         else:
             state = state.flatten()
-        state = torch.from_numpy(state).to(device)
+        state = torch.from_numpy(state/255).to(device)
         with torch.no_grad():
             if self.conv_layer is None:
                 logits = self.old_policy(state)
