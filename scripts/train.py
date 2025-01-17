@@ -24,8 +24,6 @@ make_net(params)
 
 agent = PPO(**params)
 
-
-
 epoch = agent.check_status()
 
 episodes = params['episodes']+1
@@ -59,12 +57,11 @@ for ep in range(epoch, episodes):
 
     print(f'ep. {ep}\t{ep_reward = :.3f}\t{steps = }')
     agent.write_plot_data(ep_reward)
-    agent.save_check_interval(epoch=ep, interval=20)
+    agent.save_check_interval(episodes, epoch=ep, interval=20)
     agent.save_best_model(float(ep_reward))
     agent.train()
 
-
-if epoch == params['episodes']:
+if agent.configs['status'] == 'finished':
     g_drive.upload_folder()
 
 

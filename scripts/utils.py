@@ -123,11 +123,17 @@ class Utils:
             self.critic.train()
         print('checkpoint loaded...')
     
-    def save_check_interval(self, epoch, interval=50):
+    def save_check_interval(self, episodes, epoch, interval=50, queue_size=20):
         if not(epoch % interval) and epoch > 0:
+            if epoch == episodes:
+                self.configs['status'] = 'finished'
             checkpath = self.create_checkpoint_file(epoch)
             self.save_checkpoint(epoch, checkpath)
             self.save_plot()
+            del_checkpoint = f'{CHECKPOINT_DIR}/checkpoint_{epoch - (queue_size*interval)}.pth'
+            if os.path.exists(del_checkpoint):
+                os.remove(del_checkpoint)
+
     
     def load_model(self):
         print('loading model...')
