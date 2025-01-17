@@ -3,7 +3,10 @@ import torch
 import os
 import yaml
 import pandas as pd
+import matplotlib
+matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
+from train import params
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -74,21 +77,18 @@ class Utils:
 
     def save_plot(self):
         data = pd.read_csv(self.plot_file)
-        plt.figure(figsize=(11, 9))
-        data.rolling(int(self.configs['epochs']/20)).mean().plot(color='red', linewidth=3)
-        plt.legend().set_visible(False)
-        plt.xlabel('Episodes', fontsize=13)
-        plt.ylabel('Average Rewards', fontsize=13)
-        plt.xticks(fontsize=13)
-        plt.grid(linestyle='--')
-        name = 'dummy_ppo'
-        plt.savefig(f'{MISC_DIR}/{name}_plot', dpi=300)
-        plt.clf()
-        plt.cla()
-        plt.close('all')
+        with plt.style.context('default'):
+            plt.figure(figsize=(11, 9))
+            data.rolling(int(self.configs['epochs']/20)).mean().plot(color='red', linewidth=3)
+            plt.legend().set_visible(False)
+            plt.xlabel('Episodes', fontsize=13)
+            plt.ylabel('Average Rewards', fontsize=13)
+            plt.xticks(fontsize=13)
+            plt.grid(linestyle='--')
+            name = params['name']
+            plt.savefig(f'{MISC_DIR}/{name}_plot', dpi=300)
+            plt.close('all')
         del data
-
-
 
     def save_checkpoint(self, epoch, checkpath):
         if self.net_is_shared:
