@@ -6,7 +6,6 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg') 
 import matplotlib.pyplot as plt
-from train import params
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -85,8 +84,7 @@ class Utils:
             plt.ylabel('Average Rewards', fontsize=13)
             plt.xticks(fontsize=13)
             plt.grid(linestyle='--')
-            name = params['name']
-            plt.savefig(f'{MISC_DIR}/{name}_plot', dpi=300)
+            plt.savefig(f'{MISC_DIR}/plot.png', dpi=300)
             plt.close('all')
         del data
 

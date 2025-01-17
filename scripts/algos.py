@@ -12,7 +12,6 @@ from dists import MultiCategorical
 from utils import RunningMeanStd
 import os
 import yaml
-import random
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
