@@ -39,8 +39,8 @@ for ep in range(epoch, episodes):
         action = agent.act(d_s)
         # try:
         next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
-        cv.imshow('depth', state[0])
-        cv.waitKey(1)
+        # cv.imshow('depth', state[0])
+        # cv.waitKey(1)
         # except:
             # except_flag = True
             # break
