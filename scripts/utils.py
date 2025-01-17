@@ -83,7 +83,11 @@ class Utils:
         plt.grid(linestyle='--')
         name = 'dummy_ppo'
         plt.savefig(f'{MISC_DIR}/{name}_plot', dpi=300)
-        plt.close()
+        plt.clf()
+        plt.cla()
+        plt.close('all')
+        del data
+
 
 
     def save_checkpoint(self, epoch, checkpath):
