@@ -15,6 +15,7 @@ algo_params:
   max_reward: 100
   
 network_params:
+  conv_layers:
   hid_layers: [512, 256]
   net_is_shared: false
   act_fn: 'relu'
@@ -22,7 +23,7 @@ network_params:
   init_logstd: 0.1
 
 env_params:
-  obs_scale_factor: 0.1
-  positions: [[-2.5, -2.0]]
-  angles: [0, 45, 90, 135, 180, 225, 270, 315]
+  obs_scale_factor: 1
+  positions: [[0, 0.5]]
+  angles: [180]
   noise_std: 15

@@ -58,7 +58,7 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        observation[0] = self._add_noise(observation[0])
+        # observation[0] = self._add_noise(observation[0])
         return observation, {}
     
     def get_reward(self, action, state):#contin.. action space rewards
@@ -106,9 +106,10 @@ class Gym(gym.Env):
     def _get_depth(self):
         cv_img = CvBridge().imgmsg_to_cv2(rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10))
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
-        cv_img = cv_img/8.0
+
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        cv_img = (cv_img*255).astype(np.uint8)
+        cv_img = cv.convertScaleAbs(cv_img, alpha=31.875)
+        # print(np.min(cv_img), np.max(cv_img))
         cv_img = cv_img[:self.depth_crop, :]
         cv_img = cv_img = np.expand_dims(cv_img, 2)
         return cv_img
