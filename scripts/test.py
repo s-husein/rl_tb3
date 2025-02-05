@@ -33,11 +33,15 @@ state = env.reset()[0][0]
 
 # print(state.shape)
 
+
+
+
+
 # # g_drive = GoogleDrive(MISC_DIR)
 
 
 # start = dt.datetime.now()
-# mask = np.full(state.shape, 0b11111000)
+# mask = np.full(state.shape, 0b11110000)
 
 # state = np.bitwise_and(state, mask).astype(np.uint8)
 

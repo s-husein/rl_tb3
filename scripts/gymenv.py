@@ -22,7 +22,7 @@ class Gym(gym.Env):
         self.POS = positions
         self.ANGLES = angles
         self.scal_fac = obs_scale_factor
-        self.depth_crop = int(360*obs_scale_factor*0.75)
+        self.depth_crop = int(480*obs_scale_factor*0.75)
         depth_img_shape = (self.depth_crop, int(640*obs_scale_factor), 1)
         rgb_img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 3)
         self.img_area = np.prod(depth_img_shape)

@@ -60,7 +60,9 @@ class NeuralNet(nn.Module):
         print("State sample shape:", state_shape)
         print("Action sample shape:", action_dim)
         if len(state_shape) > 1:
-            inp_shape = np.prod(state_shape) #its an image
+            if conv_layers is not None:
+                inp_shape = state_shape
+            else: inp_shape = np.prod(state_shape) #its an image
         else:
             inp_shape = state_shape[0] #its an 1d array
 
@@ -69,7 +71,7 @@ class NeuralNet(nn.Module):
                         'softplus':nn.Softplus(),
                         'tanh':nn.Tanh(),
                         'elu': nn.ELU()}
-
+    
         if conv_layers is not None:
             inp_h, inp_w, in_chann = inp_shape
             for conv in conv_layers:
@@ -84,13 +86,13 @@ class NeuralNet(nn.Module):
                 inp_h = out_h
                 inp_w = out_w
                 print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
-            if max_pool is not None:
-                layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
-                out_h = (inp_h - max_pool[0])//max_pool[1] + 1
-                out_w = (inp_w - max_pool[0])//max_pool[1] + 1
-                inp_h = out_h
-                inp_w = out_w
-                print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
+                if max_pool is not None:
+                    layers.append(nn.MaxPool2d(max_pool[0], max_pool[1]))
+                    out_h = (inp_h - max_pool[0])//max_pool[1] + 1
+                    out_w = (inp_w - max_pool[0])//max_pool[1] + 1
+                    inp_h = out_h
+                    inp_w = out_w
+                    print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
 
                 in_chann = out_chann
             layers.append(nn.Flatten())
