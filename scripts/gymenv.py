@@ -67,7 +67,8 @@ class Gym(gym.Env):
         if self._action_space == 'disc':
             reward = 0.03
         else:
-            reward = (action[0])/(abs(action[1]) + 0.05)
+            reward = action[0] - abs(action[1])
+            # reward = (action[0])/(abs(action[1]) + 0.05)
         if (np.sum(state < 7) > 0.05*self.img_area):
             reward = -100
             done = True

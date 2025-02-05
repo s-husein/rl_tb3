@@ -285,7 +285,7 @@ class A2C(Utils):
 class PPO(ActorCritic):
     def __init__(self, k_epochs,
                  batch_size = 256, min_batch_size=2048,
-                 net_is_shared = False, conv_layer=None,
+                 net_is_shared = False, conv_layers=None,
                  actor_lr=0.0003, critic_lr = 0.001,
                  action_space = 'disc', name='ppo', lam=0.95,
                  std_min_clip = 0.07, beta=0.01, eps_clip=0.1,
@@ -299,7 +299,7 @@ class PPO(ActorCritic):
         self.batch_size = batch_size
         self.k_epochs = k_epochs
         self.eps_clip = eps_clip
-        self.conv_layer = conv_layer
+        self.conv_layer = conv_layers
         if self.net_is_shared:
             self.old_policy = deepcopy(self.model)
             assert id(self.old_policy) != id(self.model)

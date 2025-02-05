@@ -1,5 +1,5 @@
 algo_params:
-  name: 'dummy_ppo'
+  name: 'ppo_non_quantized'
   k_epochs: 7
   batch_size: 64
   min_batch_size: 2048
@@ -27,6 +27,6 @@ network_params:
 
 env_params:
   obs_scale_factor: 0.25
-  positions: [[1.0, 1.0], [3, -3], [3, 3]]
-  angles: [180]
+  positions: [[-0.5, 0.5]]
+  angles: [0, 45, 90, 135, 180, 225, 270, 315]
   noise_std: 15
