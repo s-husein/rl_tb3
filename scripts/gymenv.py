@@ -16,12 +16,13 @@ from time import sleep
 class Gym(gym.Env):
 
     def __init__(self, positions = [(0, 0)], angles = [0],
-                 action_space = 'disc', bins=7, obs_scale_factor=1, **kwargs):
+                 action_space = 'disc', bins=7, obs_scale_factor=1, noise_std=0, **kwargs):
         self._action_space = action_space
         self._bins = bins
         self.POS = positions
         self.ANGLES = angles
         self.scal_fac = obs_scale_factor
+        self.noise_std = noise_std
         self.depth_crop = int(480*obs_scale_factor*0.75)
         depth_img_shape = (self.depth_crop, int(640*obs_scale_factor), 1)
         rgb_img_shape = (int(360*obs_scale_factor), int(640*obs_scale_factor), 3)
@@ -48,7 +49,8 @@ class Gym(gym.Env):
             self.act_c(action)
         observation = self.get_observation()
         reward, done = self.get_reward(action, observation[0])
-        observation[0] = self._add_noise(observation[0])
+        if self.noise_std > 0:
+            observation[0] = self._add_noise(observation[0], self.noise_std)
         return observation, reward, done, False, {}
 
     def reset(self, seed=None):
@@ -58,7 +60,6 @@ class Gym(gym.Env):
         rospy.ServiceProxy('/gazebo/reset_simulation', Empty)()
         self.set_model_state(pos, angle)
         observation = self.get_observation()
-        # observation[0] = self._add_noise(observation[0])
         return observation, {}
     
     def get_reward(self, action, state):#contin.. action space rewards
