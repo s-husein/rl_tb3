@@ -68,9 +68,9 @@ class Gym(gym.Env):
         if self._action_space == 'disc':
             reward = 0.03
         else:
-            reward = action[0] - abs(action[1])
-            # reward = (action[0])/(abs(action[1]) + 0.05)
-        if (np.sum(state < 7) > 0.05*self.img_area):
+            # reward = action[0] - abs(action[1])
+            reward = (action[0])/(abs(action[1]) + 0.1)
+        if (np.sum(state < 9) > 0.05*self.img_area):
             reward = -100
             done = True
         return round(reward, 3), done
@@ -106,11 +106,12 @@ class Gym(gym.Env):
         #         return self.depth_img, self.rgb_img
 
     def _get_depth(self):
+        ratio = 255.0/5.0
         cv_img = CvBridge().imgmsg_to_cv2(rospy.wait_for_message('/camera/depth/image_rect_raw', Image, 10))
         cv_img = cv.resize(cv_img, (0, 0), fx = self.scal_fac, fy = self.scal_fac)
 
         cv_img = np.nan_to_num(cv_img, nan=0.0)
-        cv_img = cv.convertScaleAbs(cv_img, alpha=31.875)
+        cv_img = cv.convertScaleAbs(cv_img, alpha=ratio)
         # print(np.min(cv_img), np.max(cv_img))
         cv_img = cv_img[:self.depth_crop, :]
         cv_img = cv_img = np.expand_dims(cv_img, 2)

@@ -1,22 +1,22 @@
 algo_params:
   name: 'ppo_non_quantized'
-  k_epochs: 8
-  batch_size: 128
+  k_epochs: 7
+  batch_size: 256
   min_batch_size: 2048
   episodes: 10000
   lam: 0.95
   gamma: 0.99
-  actor_lr: 0.0005
-  critic_lr: 0.001
+  actor_lr: 0.00005
+  critic_lr: 0.0001
   std_min_clip:  0.1
-  eps_clip: 0.3
-  beta: 0.08
+  eps_clip: 0.2
+  beta: 0.1
   max_steps: 15000
   max_reward: 100
   
 network_params:
-  conv_layers: [[32, 5, 2],
-                [64, 3, 1]]
+  conv_layers: [[8, 11, 11]]
+                # [16, 3, 1]]
   max_pool: [2, 2]
   hid_layers: [512, 256]
   net_is_shared: false
@@ -28,4 +28,4 @@ env_params:
   obs_scale_factor: 0.1
   positions: [[-0.5, 0.5]]
   angles: [0, 45, 90, 135, 180, 225, 270, 315]
-  noise_std: 10
+  noise_std: 5

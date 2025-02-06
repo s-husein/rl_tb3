@@ -12,6 +12,7 @@ from dists import MultiCategorical
 from utils import RunningMeanStd
 import os
 import yaml
+import random
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
@@ -412,7 +413,7 @@ class PPO(ActorCritic):
             # aug = random.choice([True, False])
             # if aug:
             #     self.buffer.augment()
-            rewards = sum(self.buffer.traj['rewards'])
+            # rewards = sum(self.buffer.traj['rewards'])
             # if rewards <= self.new_rewards:
             #     self.beta += 0.01
             # else:
@@ -448,6 +449,7 @@ class PPO(ActorCritic):
             else:
                 self.old_policy.load_state_dict(self.actor.state_dict())
                 self.old_policy.log_std = self.actor.log_std
+                print(self.old_policy.log_std)
         else:
             pass
 
