@@ -9,8 +9,8 @@ algo_params:
   actor_lr: 0.0005
   critic_lr: 0.001
   std_min_clip:  0.1
-  eps_clip: 0.2
-  beta: 0.1
+  eps_clip: 0.3
+  beta: 0.08
   max_steps: 15000
   max_reward: 100
   

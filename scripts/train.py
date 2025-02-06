@@ -35,7 +35,7 @@ for ep in range(epoch, episodes):
     ep_reward = 0
     steps = 0
     while not done:
-        d_s = (((np.transpose(state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
+        d_s = (np.transpose(state[0], (2, 0, 1))/255.0).astype(np.float32)
         action = agent.act(d_s)
         # try:
         next_state, reward, done, info, _ = env.step(action.cpu().detach().numpy())
@@ -44,7 +44,7 @@ for ep in range(epoch, episodes):
         # except:
             # except_flag = True
             # break
-        d_ns = (((np.transpose(next_state[0], (2, 0, 1))/255.0)-0.5)/0.5).astype(np.float32)
+        d_ns = (np.transpose(next_state[0], (2, 0, 1))/255.0).astype(np.float32)
         agent.buffer.add_experience(d_s, action, d_ns, reward, done)
         state = next_state
         ep_reward += reward
