@@ -1,18 +1,13 @@
 algo_params:
   name: 'ppo_non_quantized'
-  k_epochs: 7
+  k_epochs: 8
   batch_size: 256
   min_batch_size: 2048
   episodes: 10000
   lam: 0.95
   gamma: 0.99
-<<<<<<< HEAD
-  actor_lr: 0.00005
-  critic_lr: 0.0001
-=======
   actor_lr: 0.001
   critic_lr: 0.005
->>>>>>> fb5c4a4 (-)
   std_min_clip:  0.1
   eps_clip: 0.2
   beta: 0.1
@@ -20,9 +15,8 @@ algo_params:
   max_reward: 100
   
 network_params:
-  conv_layers: [[32, 5, 2],
-                [64, 3, 1]]
-  max_pool: [2, 2]
+  conv_layers: [[8, 4, 4]]
+  avg_pool: [2, 2]
   hid_layers: [512, 256]
   net_is_shared: false
   act_fn: 'relu'
