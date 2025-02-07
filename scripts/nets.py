@@ -34,13 +34,13 @@ class NeuralNet(nn.Module):
                 action_space, net_type, bins=None,
                 act_fn='relu', ordinal=False, init_logstd=0.0,
                 conv_layers=None, batch_norm=False,
-                max_pool = None, **kwargs):
+                max_pool = None, avg_pool = None, **kwargs):
         super(NeuralNet, self).__init__()
 
         self.create(env, hid_layers, action_space,
                     net_type, bins, act_fn, ordinal,
                     init_logstd, conv_layers,
-                    batch_norm, max_pool)
+                    batch_norm, max_pool, avg_pool)
         if hasattr(self, 'log_std'):
             print(f'log standard deviation parameter: {self.log_std}')
 
@@ -52,7 +52,7 @@ class NeuralNet(nn.Module):
                 action_space, net_type, bins=None,
                 act_fn='relu', ordinal=False, init_logstd = 0.0,
                 conv_layers=None, batch_norm=False,
-                max_pool = None, **kwargs):
+                max_pool = None, avg_pool = None, **kwargs):
     
         state_shape = env.observation_space.sample()[0].shape
         action_dim = len(env.action_space.sample())
@@ -93,6 +93,14 @@ class NeuralNet(nn.Module):
                     inp_h = out_h
                     inp_w = out_w
                     print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
+                if avg_pool is not None:
+                    layers.append(nn.AvgPool2d(avg_pool[0], avg_pool[1]))
+                    out_h = (inp_h - avg_pool[0])//avg_pool[1] + 1
+                    out_w = (inp_w - avg_pool[0])//avg_pool[1] + 1
+                    inp_h = out_h
+                    inp_w = out_w
+                    print(f'h = {inp_h}, w = {inp_w}, c = {in_chann}')
+
 
                 in_chann = out_chann
             layers.append(nn.Flatten())
