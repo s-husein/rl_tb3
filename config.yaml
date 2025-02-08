@@ -15,7 +15,7 @@ algo_params:
   max_reward: 100
   
 network_params:
-  conv_layers: [[8, 4, 4]]
+  conv_layers: [[8, 5, 5]]
   avg_pool: [2, 2]
   hid_layers: [512, 256]
   net_is_shared: false
@@ -24,7 +24,7 @@ network_params:
   init_logstd: 0.1
 
 env_params:
-  obs_scale_factor: 0.1
+  obs_scale_factor: 0.25
   positions: [[-0.5, 0.5]]
   angles: [0, 45, 90, 135, 180, 225, 270, 315]
   noise_std: 5
