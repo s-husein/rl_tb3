@@ -48,7 +48,7 @@ class Utils:
         with open(self.config_file, 'w') as file:
             yaml.safe_dump(args, file)
 
-    def check_status(self):
+    def check_status(self, episodes):
         status = self.configs['status']
         if status == 'finished':
             raise Exception('Training already finished...')
@@ -60,6 +60,11 @@ class Utils:
             self.configs['status'] = 'in_progress'
         elif status == 'in_progress':
             epoch = self.configs['epochs']
+            if epoch+1 >= episodes:
+                self.configs['status'] = 'finished'
+                with open(f'{MISC_DIR}/misc.yaml', 'w') as conf_file:
+                    yaml.safe_dump(self.configs, conf_file)
+                return epoch+1
             checkpath = f'{CHECKPOINT_DIR}/checkpoint_{epoch}.pth'
             if os.path.exists(checkpath):
                 self.load_checkpoint(checkpath)
@@ -127,7 +132,7 @@ class Utils:
     
     def save_check_interval(self, episodes, epoch, interval=50, queue_size=20):
         if not(epoch % interval) and epoch > 0:
-            if epoch == episodes:
+            if epoch >= episodes:
                 self.configs['status'] = 'finished'
             checkpath = self.create_checkpoint_file(epoch)
             self.save_checkpoint(epoch, checkpath)

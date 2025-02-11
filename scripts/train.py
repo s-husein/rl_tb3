@@ -24,9 +24,9 @@ make_net(params)
 
 agent = PPO(**params)
 
-epoch = agent.check_status()
-
 episodes = params['episodes']+1
+
+epoch = agent.check_status(episodes)
 
 for ep in range(epoch, episodes):
     done = False
@@ -57,7 +57,7 @@ for ep in range(epoch, episodes):
 
     print(f'ep. {ep}\t{ep_reward = :.3f}\t{steps = }')
     agent.write_plot_data(ep_reward)
-    agent.save_check_interval(episodes, epoch=ep, interval=100, queue_size=50)
+    agent.save_check_interval(episodes, epoch=ep, interval=50, queue_size=40)
     agent.save_best_model(float(ep_reward))
     agent.train()
 
