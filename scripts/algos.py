@@ -24,6 +24,7 @@ class ActorCritic(Utils):
                  critic_lr = 0.0003, action_space = 'disc', n_step_ret = None, lam = None, gamma=0.99, 
                  std_min_clip = 0.08, beta = 0.03, actor=None, critic=None):
         self.buffer = Rollout()
+        self.prev_rewards = 0
         self.min_batch_size = min_batch_size
         self.net_is_shared = net_is_shared
         self.model_file = f'{MISC_DIR}/{name}_model.pth'
@@ -413,12 +414,24 @@ class PPO(ActorCritic):
             # aug = random.choice([True, False])
             # if aug:
             #     self.buffer.augment()
-            # rewards = sum(self.buffer.traj['rewards'])
-            # if rewards <= self.new_rewards:
-            #     self.beta += 0.01
-            # else:
-            #     self.beta -= (0.01 * (rewards/self.new_rewards))
-            # self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
+            rewards = np.mean(self.buffer.traj['rewards'])
+            
+            reward_change = rewards - self.prev_rewards
+            
+            lr_scale = 1.0 + (0.1 * np.sign(reward_change))  # ±10% adjustment
+            
+            # Update learning rates
+            for param_group in self.act_optim.param_groups:
+                param_group['lr'] = np.clip(param_group['lr'] * lr_scale, 1e-6, 1e-3)
+            for param_group in self.crit_optim.param_groups:
+                param_group['lr'] = np.clip(param_group['lr'] * lr_scale, 1e-6, 1e-3)
+                
+            if rewards <= self.prev_rewards:
+                self.beta += 0.003
+            else:
+                self.beta -= 0.005
+                self.prev_rewards = rewards
+            self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
 
             print('training...')
             states = torch.stack(self.buffer.traj['states']).to(device)
