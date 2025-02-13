@@ -70,7 +70,7 @@ class Gym(gym.Env):
         else:
             # reward = action[0] - abs(action[1])
             reward = (action[0])/(abs(action[1]) + 0.1)
-        if (np.sum(state < 9) > 0.05*self.img_area):
+        if (np.sum(state < 11) > 0.05*self.img_area):
             reward = -100
             done = True
         return round(reward, 3), done

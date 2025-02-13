@@ -61,8 +61,8 @@ for ep in range(epoch, episodes):
     agent.save_best_model(float(ep_reward))
     agent.train()
 
-if agent.configs['status'] == 'finished':
-    g_drive.upload_folder()
+# if agent.configs['status'] == 'finished':
+#     g_drive.upload_folder()
 
 
 

@@ -21,7 +21,7 @@ class Rollout:
     def get_mini_batches(self, mb_size):
 
         indices = np.arange(self.size)
-        # np.random.shuffle(indices)
+        np.random.shuffle(indices)
 
         mini_bts = round(self.size/mb_size)
         mini_batches = []

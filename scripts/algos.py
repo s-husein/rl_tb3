@@ -411,9 +411,9 @@ class PPO(ActorCritic):
 
     def train(self):
         if self.buffer.size > self.min_batch_size:
-            # aug = random.choice([True, False])
-            # if aug:
-            #     self.buffer.augment()
+            if np.random.choice([True, False]):
+                self.buffer.augment()
+                
             rewards = np.mean(self.buffer.traj['rewards'])
             
             reward_change = rewards - self.prev_rewards
@@ -431,9 +431,11 @@ class PPO(ActorCritic):
             else:
                 self.beta -= 0.005
                 self.prev_rewards = rewards
+            
             self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
 
             print('training...')
+            print(f'beta: {self.beta}')
             states = torch.stack(self.buffer.traj['states']).to(device)
             actions = torch.stack(self.buffer.traj['actions']).to(device)
             next_states = torch.stack(self.buffer.traj['next_states']).to(device)
@@ -446,7 +448,6 @@ class PPO(ActorCritic):
             for _ in range(self.k_epochs):
                 mini_batches = self.buffer.get_mini_batches(self.batch_size)
                 for mini_batch in mini_batches:                    
-                    min_states = min_actions = min_advs = min_tar_values = torch.zeros(len(mini_batch)).to(device)
                     min_states = torch.stack([states[ind] for ind in mini_batch]).to(device)
                     min_actions = torch.stack([actions[ind] for ind in mini_batch]).to(device)
                     min_advs = torch.tensor([advs[ind] for ind in mini_batch]).to(device)
