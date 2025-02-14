@@ -1,6 +1,6 @@
 algo_params:
   name: 'ppo_non_quantized'
-  k_epochs: 7
+  k_epochs: 9
   batch_size: 128
   min_batch_size: 4096
   episodes: 4000
@@ -27,4 +27,4 @@ env_params:
   obs_scale_factor: 0.25
   positions: [[-0.5, 0.5], [8.5, 0.5], [8.5, -8.5]]
   angles: [0, 45, 90, 135, 180, 225, 270, 315]
-  noise_std: 10
+  noise_std: 8

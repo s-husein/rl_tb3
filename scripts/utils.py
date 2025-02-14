@@ -132,7 +132,7 @@ class Utils:
     
     def save_check_interval(self, episodes, epoch, interval=50, queue_size=20):
         if not(epoch % interval) and epoch > 0:
-            if epoch >= episodes:
+            if epoch >= episodes-1:
                 self.configs['status'] = 'finished'
             checkpath = self.create_checkpoint_file(epoch)
             self.save_checkpoint(epoch, checkpath)
