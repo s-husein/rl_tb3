@@ -1,12 +1,12 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-data = pd.read_csv('/home/user/fyp/src/rl_tb3/plots/rnd_ppo_stg1_pc_plot.txt')
+data = pd.read_csv('/home/user/fyp/src/rl_tb3/misc/ppo_non_quantized_plot.txt')
 
 
 
-# data.plot(color='blue')
-data[1050:2000].rolling(70).mean().plot(color='green')
+data.plot(color='blue')
+data.rolling(200).mean().plot(color='green')
 
 # plt.plot(data)
 # plt.plot(data.rolling(100).mean())

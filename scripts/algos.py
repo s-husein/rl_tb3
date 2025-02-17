@@ -47,8 +47,8 @@ class ActorCritic(Utils):
         else:
             self.actor = actor.to(device)
             self.critic = critic.to(device)
-            self.act_optim = Adam(self.actor.parameters(), lr = actor_lr, eps = 1e-5)
-            self.crit_optim = Adam(self.critic.parameters(), lr = critic_lr, eps = 1e-5)
+            self.act_optim = Adam(self.actor.parameters(), lr = actor_lr, eps = 1e-6, weight_decay=1e-4)
+            self.crit_optim = Adam(self.critic.parameters(), lr = critic_lr, eps = 1e-6, weight_decay=1e-4)
             self.actor.train()
             self.critic.train()
             print(f'actor: {self.actor}\ncritic: {self.critic}')
@@ -367,11 +367,20 @@ class PPO(ActorCritic):
             old_logits = self.old_policy(states)
             old_log_probs = self.log_probs(old_logits, actions)[0]
         assert old_log_probs.shape == log_probs.shape
+        kl_div = (old_log_probs - log_probs).mean()
         ratios = torch.exp(log_probs - old_log_probs)
         surr1 = ratios * advs
         surr2 = torch.clamp(ratios, 1.0 - self.eps_clip, 1.0 + self.eps_clip) * advs
         clip_loss = -torch.min(surr1, surr2).mean()
-        policy_loss = (clip_loss - (self.beta*entropy).mean()).to(device)
+
+        target_kl = 0.05
+        if kl_div > target_kl:
+            print("KL too high, skipping update")
+            return
+
+        # Policy Loss with KL Regularization
+        alpha = 0.01  # KL penalty coefficient
+        policy_loss = (clip_loss - (self.beta * entropy).mean() + alpha * kl_div).to(device)
         self.act_optim.zero_grad()
         policy_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.actor.parameters(), 0.4)
@@ -388,7 +397,7 @@ class PPO(ActorCritic):
         self.crit_optim.zero_grad()
         critic_loss.backward()
         torch.nn.utils.clip_grad.clip_grad_norm_(self.critic.parameters(), 0.4)
-        self.crit_optim.step()    
+        self.crit_optim.step()
 
     def load_checkpoint(self, checkpath):
         print('loading checkpoint..')
@@ -416,23 +425,23 @@ class PPO(ActorCritic):
                 
             rewards = np.mean(self.buffer.traj['rewards'])
             
-            reward_change = rewards - self.prev_rewards
+            # reward_change = rewards - self.prev_rewards
             
-            lr_scale = 1.0 + (0.1 * np.sign(reward_change))  # ±10% adjustment
+            # lr_scale = 1.0 + (0.1 * np.sign(reward_change))  # ±10% adjustment
             
-            # Update learning rates
-            for param_group in self.act_optim.param_groups:
-                param_group['lr'] = np.clip(param_group['lr'] * lr_scale, 1e-6, 1e-3)
-            for param_group in self.crit_optim.param_groups:
-                param_group['lr'] = np.clip(param_group['lr'] * lr_scale, 1e-6, 1e-3)
+            # # Update learning rates
+            # for param_group in self.act_optim.param_groups:
+            #     param_group['lr'] = np.clip(param_group['lr'] * lr_scale, 1e-6, 1e-3)
+            # for param_group in self.crit_optim.param_groups:
+            #     param_group['lr'] = np.clip(param_group['lr'] * lr_scale, 1e-6, 1e-3)
                 
-            if rewards <= self.prev_rewards:
-                self.beta += 0.003
-            else:
-                self.beta -= 0.005
-                self.prev_rewards = rewards
+            # if rewards <= self.prev_rewards:
+            #     self.beta += 0.003
+            # else:
+            #     self.beta -= 0.005
+            #     self.prev_rewards = rewards
             
-            self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
+            # self.beta = round(float(np.clip(self.beta, 0.02, 0.1)), 4)
 
             print('training...')
             print(f'beta: {self.beta}')
